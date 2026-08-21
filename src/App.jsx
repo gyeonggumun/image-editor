@@ -87,8 +87,33 @@ function App() {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
     
-    const lines = text.split('\n');
-    lines.forEach((line, index) => {
+    // 자동 줄바꿈을 위한 최대 너비 계산 (우측 여백 20px 확보)
+    const maxTextWidth = width - textPos.x - 20; 
+    const paragraphs = text.split('\n'); // 먼저 엔터(수동 줄바꿈)를 기준으로 문단을 나눔
+    const finalLines = [];
+
+    paragraphs.forEach(paragraph => {
+      let currentLine = '';
+      // 한글 자동 줄바꿈이 매끄럽게 되도록 글자 단위로 쪼갬
+      const chars = paragraph.split(''); 
+      
+      for (let i = 0; i < chars.length; i++) {
+        const testLine = currentLine + chars[i];
+        const metrics = ctx.measureText(testLine); 
+        
+        // 그려질 글자가 최대 너비를 초과하면 다음 줄로 넘김
+        if (metrics.width > maxTextWidth && currentLine.length > 0) {
+          finalLines.push(currentLine);
+          currentLine = chars[i]; 
+        } else {
+          currentLine = testLine;
+        }
+      }
+      finalLines.push(currentLine); 
+    });
+
+    // 계산된 모든 줄을 화면에 렌더링
+    finalLines.forEach((line, index) => {
       ctx.fillText(line, textPos.x, textPos.y + (index * (textSize * 1.2)));
     });
 
@@ -158,7 +183,7 @@ function App() {
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // 같은 파일 다시 업로드 가능하도록 초기화
+    e.target.value = ''; 
   };
 
   return (
