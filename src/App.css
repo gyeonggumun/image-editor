@@ -26,7 +26,7 @@ body {
 
 .control-panel {
   flex: 1;
-  min-width: 320px;
+  min-width: 350px;
   background: var(--panel-bg);
   padding: 24px;
   border-radius: 12px;
@@ -40,6 +40,7 @@ body {
   font-weight: 700;
   border-bottom: 2px solid var(--border-color);
   padding-bottom: 12px;
+  text-align: center;
 }
 
 .control-group {
@@ -53,6 +54,7 @@ body {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-label);
+  text-align: center;
 }
 
 .control-input {
@@ -66,6 +68,10 @@ body {
 .control-input:focus {
   outline: none;
   border-color: var(--primary-color);
+}
+
+textarea.control-input {
+  resize: vertical;
 }
 
 .preview-panel {
@@ -104,4 +110,97 @@ body {
 
 .action-btn:hover {
   background-color: var(--primary-hover);
+}
+
+/* 템플릿 관리 영역 디자인 추가 */
+.template-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.secondary-btn, .file-upload-label {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  white-space: nowrap; /* 글씨 줄바꿈 방지 */
+}
+
+.secondary-btn:hover, .file-upload-label:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.file-upload-input {
+  display: none; /* 못생긴 기본 input 숨기기 */
+}
+
+.template-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.template-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.template-item span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.template-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.action-sm-btn {
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.action-sm-btn:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.action-sm-btn.delete {
+  color: #dc2626;
+}
+
+.action-sm-btn.delete:hover {
+  background-color: #fef2f2;
+  border-color: #f87171;
 }

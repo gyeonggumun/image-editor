@@ -4,7 +4,6 @@ import './App.css';
 function App() {
   const canvasRef = useRef(null);
   
-  // 기본 에디터 상태
   const [image, setImage] = useState(null);
   const [text, setText] = useState('여기에 텍스트 입력\n줄바꿈도 가능합니다');
   const [ratio, setRatio] = useState('1:1');
@@ -12,11 +11,9 @@ function App() {
   const [textSize, setTextSize] = useState(40);
   const [textColor, setTextColor] = useState('#ffffff');
   
-  // 템플릿 및 에러 상태
   const [templates, setTemplates] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // 1. 초기 렌더링 시 로컬 스토리지에서 템플릿 불러오기
   useEffect(() => {
     const saved = localStorage.getItem('editorTemplates');
     if (saved) {
@@ -36,7 +33,6 @@ function App() {
     return { width: baseWidth, height: baseWidth };
   };
 
-  // 2. 파일 형식 검증 및 이미지 업로드
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -56,7 +52,6 @@ function App() {
     reader.readAsDataURL(file);
   };
 
-  // 3. 캔버스 렌더링 (줄바꿈 처리 포함)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -92,7 +87,6 @@ function App() {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
     
-    // 줄바꿈 대응 로직
     const lines = text.split('\n');
     lines.forEach((line, index) => {
       ctx.fillText(line, textPos.x, textPos.y + (index * (textSize * 1.2)));
@@ -110,7 +104,6 @@ function App() {
     link.click();
   };
 
-  // 4. 템플릿 관리 (생성, 삭제, 로드)
   const saveTemplate = () => {
     const newTemplate = {
       id: Date.now(),
@@ -137,7 +130,6 @@ function App() {
     localStorage.setItem('editorTemplates', JSON.stringify(updated));
   };
 
-  // 5. JSON 내보내기 / 가져오기 (예외 처리 포함)
   const exportJSON = () => {
     const dataStr = JSON.stringify(templates, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
@@ -166,6 +158,7 @@ function App() {
       }
     };
     reader.readAsText(file);
+    e.target.value = ''; // 같은 파일 다시 업로드 가능하도록 초기화
   };
 
   return (
@@ -173,11 +166,14 @@ function App() {
       <div className="control-panel">
         <h2 className="panel-title">🎨 스튜디오 설정</h2>
         
-        {errorMessage && <div style={{ color: 'red', marginBottom: '10px', fontWeight: 'bold' }}>{errorMessage}</div>}
+        {errorMessage && <div style={{ color: '#dc2626', backgroundColor: '#fef2f2', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center' }}>{errorMessage}</div>}
 
         <div className="control-group">
           <label>배경 이미지 (PNG, JPEG)</label>
-          <input type="file" className="control-input" accept="image/png, image/jpeg" onChange={handleImageUpload} />
+          <label className="file-upload-label">
+            파일 선택
+            <input type="file" className="file-upload-input" accept="image/png, image/jpeg" onChange={handleImageUpload} />
+          </label>
         </div>
 
         <div className="control-group">
@@ -201,7 +197,7 @@ function App() {
           </div>
           <div className="control-group">
             <label>색상</label>
-            <input type="color" className="control-input" style={{ padding: '0', height: '38px' }} value={textColor} onChange={(e) => setTextColor(e.target.value)} />
+            <input type="color" className="control-input" style={{ padding: '0', height: '38px', width: '100%' }} value={textColor} onChange={(e) => setTextColor(e.target.value)} />
           </div>
         </div>
 
@@ -214,22 +210,25 @@ function App() {
           <input type="range" min="0" max="1000" value={textPos.y} onChange={(e) => setTextPos({...textPos, y: Number(e.target.value)})} />
         </div>
 
-        <hr style={{ margin: '20px 0', borderColor: '#e5e7eb' }} />
+        <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
         
-        <h3>템플릿 관리</h3>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-          <button onClick={saveTemplate} style={{ padding: '8px', cursor: 'pointer' }}>현재 설정 저장</button>
-          <button onClick={exportJSON} style={{ padding: '8px', cursor: 'pointer' }}>JSON 내보내기</button>
-          <input type="file" accept=".json" onChange={importJSON} style={{ width: '180px' }} />
+        <h3 className="template-section-title">템플릿 관리</h3>
+        <div className="btn-group">
+          <button className="secondary-btn" onClick={saveTemplate}>설정 저장</button>
+          <button className="secondary-btn" onClick={exportJSON}>내보내기</button>
+          <label className="file-upload-label">
+            가져오기
+            <input type="file" accept=".json" className="file-upload-input" onChange={importJSON} />
+          </label>
         </div>
 
-        <ul>
+        <ul className="template-list">
           {templates.map(tmpl => (
-            <li key={tmpl.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <li key={tmpl.id} className="template-item">
               <span>{tmpl.name} ({tmpl.ratio})</span>
-              <div>
-                <button onClick={() => loadTemplate(tmpl)} style={{ marginRight: '5px' }}>불러오기</button>
-                <button onClick={() => deleteTemplate(tmpl.id)}>삭제</button>
+              <div className="template-actions">
+                <button className="action-sm-btn" onClick={() => loadTemplate(tmpl)}>적용</button>
+                <button className="action-sm-btn delete" onClick={() => deleteTemplate(tmpl.id)}>삭제</button>
               </div>
             </li>
           ))}
