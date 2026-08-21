@@ -87,12 +87,10 @@ function App() {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
     
-    // ==========================================
-    // ❌ [결함 상태의 코드] 
-    // 캔버스 fillText는 기본적으로 줄바꿈(\n)을 무시합니다.
-    // 긴 텍스트나 엔터를 입력하면 캔버스 오른쪽 밖으로 잘려나갑니다.
-    // ==========================================
-    ctx.fillText(text, textPos.x, textPos.y);
+    const lines = text.split('\n');
+    lines.forEach((line, index) => {
+      ctx.fillText(line, textPos.x, textPos.y + (index * (textSize * 1.2)));
+    });
 
     ctx.shadowColor = 'transparent';
   }, [image, text, ratio, textPos, textSize, textColor]);
@@ -160,7 +158,7 @@ function App() {
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; 
+    e.target.value = ''; // 같은 파일 다시 업로드 가능하도록 초기화
   };
 
   return (
