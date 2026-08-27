@@ -3,15 +3,15 @@ import { create } from 'zustand';
 const useEditorStore = create((set) => ({
   image: null,
   ratio: '1:1',
-  
   layers: [
     { id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, color: '#ffffff' }
   ],
   activeLayerId: null,
-
-  // 🌟 스티커 상태 추가
   stickers: [], 
   activeStickerId: null,
+  
+  // 🌟 가이드라인 상태 추가 (X, Y 좌표)
+  guidelines: { x: null, y: null },
 
   templates: [],
   errorMessage: '',
@@ -19,7 +19,6 @@ const useEditorStore = create((set) => ({
   setImage: (img) => set({ image: img }),
   setRatio: (ratio) => set({ ratio }),
   
-  // 텍스트 레이어 액션
   addLayer: () => set((state) => {
     const newLayer = { id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 40, color: '#ffffff' };
     return { layers: [...state.layers, newLayer], activeLayerId: newLayer.id, activeStickerId: null };
@@ -32,7 +31,6 @@ const useEditorStore = create((set) => ({
     activeLayerId: state.activeLayerId === id ? null : state.activeLayerId
   })),
 
-  // 🌟 스티커 액션 추가
   addSticker: (src) => set((state) => {
     const newSticker = { id: Date.now(), src, x: 150, y: 150, width: 100, height: 100 };
     return { stickers: [...state.stickers, newSticker], activeStickerId: newSticker.id, activeLayerId: null };
@@ -45,11 +43,12 @@ const useEditorStore = create((set) => ({
     activeStickerId: state.activeStickerId === id ? null : state.activeStickerId
   })),
 
-  // 선택 상태 관리 (상호 배제)
   setActiveLayer: (id) => set({ activeLayerId: id, activeStickerId: null }),
   setActiveSticker: (id) => set({ activeStickerId: id, activeLayerId: null }),
   
-  // 템플릿용
+  // 🌟 가이드라인 상태 업데이트 액션
+  setGuidelines: (guidelines) => set({ guidelines }),
+
   setLayers: (layers) => set({ layers }), 
   setStickers: (stickers) => set({ stickers }),
   setTemplates: (templates) => set({ templates }),

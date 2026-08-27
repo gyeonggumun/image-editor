@@ -5,13 +5,14 @@ function CanvasPreview() {
   const canvasRef = useRef(null);
   const { 
     image, ratio, layers, activeLayerId, setActiveLayer, updateLayer,
-    stickers, activeStickerId, setActiveSticker, updateSticker 
+    stickers, activeStickerId, setActiveSticker, updateSticker,
+    guidelines, setGuidelines
   } = useEditorStore();
   
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const stickerCache = useRef({});
-  const [, setRenderTrigger] = useState(0); // 이미지 로드 후 강제 리렌더링 트리거
+  const [, setRenderTrigger] = useState(0);
 
   const getCanvasDimensions = () => {
     const baseWidth = 600;
@@ -45,7 +46,6 @@ function CanvasPreview() {
       ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
     }
 
-    // 🌟 1. 스티커 렌더링
     stickers.forEach(sticker => {
       let img = stickerCache.current[sticker.id];
       if (!img) {
@@ -55,7 +55,6 @@ function CanvasPreview() {
         stickerCache.current[sticker.id] = img;
       } else {
         ctx.drawImage(img, sticker.x, sticker.y, sticker.width, sticker.height);
-        // 선택된 스티커 외곽선 강조
         if (sticker.id === activeStickerId) {
           ctx.strokeStyle = '#4f46e5';
           ctx.lineWidth = 2;
@@ -66,7 +65,6 @@ function CanvasPreview() {
       }
     });
 
-    // 🌟 2. 텍스트 레이어 렌더링
     layers.forEach(layer => {
       ctx.font = `bold ${layer.size}px sans-serif`;
       ctx.fillStyle = layer.color;
@@ -107,7 +105,29 @@ function CanvasPreview() {
       });
       ctx.shadowColor = 'transparent';
     });
-  }, [image, ratio, layers, activeLayerId, stickers, activeStickerId]);
+
+    // 🌟 가이드라인 렌더링 (드래그 중에만 표시)
+    if (isDragging) {
+      ctx.strokeStyle = '#ef4444'; // 붉은색 점선
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+      
+      if (guidelines.x !== null) {
+        ctx.beginPath();
+        ctx.moveTo(guidelines.x, 0);
+        ctx.lineTo(guidelines.x, height);
+        ctx.stroke();
+      }
+      if (guidelines.y !== null) {
+        ctx.beginPath();
+        ctx.moveTo(0, guidelines.y);
+        ctx.lineTo(width, guidelines.y);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]); // 초기화
+    }
+
+  }, [image, ratio, layers, activeLayerId, stickers, activeStickerId, guidelines, isDragging]);
 
   const getMousePos = (e) => {
     const canvas = canvasRef.current;
@@ -120,7 +140,6 @@ function CanvasPreview() {
   const handleMouseDown = (e) => {
     const pos = getMousePos(e);
 
-    // 1. 텍스트 클릭 확인
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const approxHeight = layer.text.split('\n').length * layer.size * 1.2;
@@ -133,7 +152,6 @@ function CanvasPreview() {
       }
     }
 
-    // 2. 스티커 클릭 확인
     for (let i = stickers.length - 1; i >= 0; i--) {
       const s = stickers[i];
       if (pos.x >= s.x && pos.x <= s.x + s.width && pos.y >= s.y && pos.y <= s.y + s.height) {
@@ -148,17 +166,44 @@ function CanvasPreview() {
     setActiveSticker(null);
   };
 
+  // 🌟 마우스 이동 중 스냅(자석 효과) 계산
   const handleMouseMove = (e) => {
     if (!isDragging) return;
     const pos = getMousePos(e);
-    if (activeLayerId) {
-      updateLayer(activeLayerId, { x: pos.x - dragOffset.x, y: pos.y - dragOffset.y });
-    } else if (activeStickerId) {
-      updateSticker(activeStickerId, { x: pos.x - dragOffset.x, y: pos.y - dragOffset.y });
+    const { width, height } = getCanvasDimensions();
+    
+    let targetX = pos.x - dragOffset.x;
+    let targetY = pos.y - dragOffset.y;
+    let guideX = null;
+    let guideY = null;
+    
+    const SNAP_THRESHOLD = 15; // 15px 이내 접근 시 스냅
+
+    // 캔버스 가로 중앙 스냅
+    if (Math.abs(targetX - width / 2) < SNAP_THRESHOLD) {
+      targetX = width / 2;
+      guideX = width / 2;
     }
+    // 캔버스 세로 중앙 스냅
+    if (Math.abs(targetY - height / 2) < SNAP_THRESHOLD) {
+      targetY = height / 2;
+      guideY = height / 2;
+    }
+
+    if (activeLayerId) {
+      updateLayer(activeLayerId, { x: targetX, y: targetY });
+    } else if (activeStickerId) {
+      updateSticker(activeStickerId, { x: targetX, y: targetY });
+    }
+    
+    setGuidelines({ x: guideX, y: guideY });
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  // 🌟 마우스를 뗄 때 가이드라인 초기화
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setGuidelines({ x: null, y: null });
+  };
 
   return (
     <div className="preview-panel">
