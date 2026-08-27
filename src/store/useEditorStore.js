@@ -1,8 +1,6 @@
-// src/store/useEditorStore.js
 import { create } from 'zustand';
 
 const useEditorStore = create((set) => ({
-  // 1. 상태 (State)
   image: null,
   text: '여기에 텍스트 입력\n줄바꿈도 가능합니다',
   ratio: '1:1',
@@ -12,17 +10,14 @@ const useEditorStore = create((set) => ({
   templates: [],
   errorMessage: '',
 
-  // 2. 액션 (Actions) - 상태를 변경하는 함수들
   setImage: (img) => set({ image: img }),
-  setText: (newText) => set({ text: newText }),
-  setRatio: (newRatio) => set({ ratio: newRatio }),
+  setText: (text) => set({ text }),
+  setRatio: (ratio) => set({ ratio }),
   setTextPos: (pos) => set((state) => ({ textPos: { ...state.textPos, ...pos } })),
-  setTextSize: (size) => set({ textSize: size }),
-  setTextColor: (color) => set({ textColor: color }),
-  
-  // 템플릿 관리 액션
-  setTemplates: (newTemplates) => set({ templates: newTemplates }),
-  setErrorMessage: (msg) => set({ errorMessage: msg }),
+  setTextSize: (textSize) => set({ textSize }),
+  setTextColor: (textColor) => set({ textColor }),
+  setTemplates: (templates) => set({ templates }),
+  setErrorMessage: (errorMessage) => set({ errorMessage }),
 }));
 
 export default useEditorStore;
