@@ -20,7 +20,8 @@ function TemplateManager() {
       id: Date.now(),
       name: `템플릿 ${store.templates.length + 1}`,
       ratio: store.ratio,
-      layers: store.layers // 🌟 배열 전체를 통째로 저장
+      layers: store.layers,
+      stickers: store.stickers // 🌟 스티커도 함께 저장
     };
     const updated = [...store.templates, newTemplate];
     store.setTemplates(updated);
@@ -29,9 +30,10 @@ function TemplateManager() {
 
   const loadTemplate = (tmpl) => {
     store.setRatio(tmpl.ratio);
-    // 🌟 저장된 배열을 복원하고, 선택된 레이어 상태는 초기화
     store.setLayers(tmpl.layers || []); 
+    store.setStickers(tmpl.stickers || []); // 🌟 스티커 복원
     store.setActiveLayer(null);
+    store.setActiveSticker(null);
     store.setErrorMessage('');
   };
 
