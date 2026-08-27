@@ -19,8 +19,8 @@ function TemplateManager() {
     const newTemplate = {
       id: Date.now(),
       name: `템플릿 ${store.templates.length + 1}`,
-      text: store.text, ratio: store.ratio, textPos: store.textPos, 
-      textSize: store.textSize, textColor: store.textColor
+      ratio: store.ratio,
+      layers: store.layers // 🌟 배열 전체를 통째로 저장
     };
     const updated = [...store.templates, newTemplate];
     store.setTemplates(updated);
@@ -28,11 +28,10 @@ function TemplateManager() {
   };
 
   const loadTemplate = (tmpl) => {
-    store.setText(tmpl.text);
     store.setRatio(tmpl.ratio);
-    store.setTextPos(tmpl.textPos);
-    store.setTextSize(tmpl.textSize);
-    store.setTextColor(tmpl.textColor);
+    // 🌟 저장된 배열을 복원하고, 선택된 레이어 상태는 초기화
+    store.setLayers(tmpl.layers || []); 
+    store.setActiveLayer(null);
     store.setErrorMessage('');
   };
 
