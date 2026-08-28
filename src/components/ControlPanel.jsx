@@ -3,8 +3,8 @@ import useEditorStore from '../store/useEditorStore';
 function ControlPanel() {
   const { 
     ratio, setRatio, setImage, errorMessage, setErrorMessage,
-    layers, activeLayerId, addLayer, updateLayer, deleteLayer, setActiveLayer,
-    stickers, activeStickerId, addSticker, updateSticker, deleteSticker, setActiveSticker
+    layers, activeLayerId, addLayer, updateLayer, deleteLayer, setActiveLayer, reorderLayer,
+    stickers, activeStickerId, addSticker, updateSticker, deleteSticker, setActiveSticker, reorderSticker
   } = useEditorStore();
 
   const handleImageUpload = (e) => {
@@ -104,9 +104,25 @@ function ControlPanel() {
         ))}
       </ul>
 
-      {/* 속성 편집 컨트롤 */}
+      {/* 🌟 속성 편집 컨트롤 (순서 제어 버튼 추가) */}
       {(activeLayer || activeSticker) ? (
         <div style={{ background: '#f3f4f6', padding: '15px', borderRadius: '8px' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '5px', marginBottom: '10px' }}>
+            <button 
+              className="action-sm-btn" 
+              onClick={() => activeLayer ? reorderLayer(activeLayer.id, 'down') : reorderSticker(activeSticker.id, 'down')}
+            >
+              ⬇️ 뒤로
+            </button>
+            <button 
+              className="action-sm-btn" 
+              onClick={() => activeLayer ? reorderLayer(activeLayer.id, 'up') : reorderSticker(activeSticker.id, 'up')}
+            >
+              ⬆️ 앞으로
+            </button>
+          </div>
+
           {activeLayer && (
             <>
               <div className="control-group">
@@ -115,7 +131,7 @@ function ControlPanel() {
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div className="control-group" style={{ flex: 1 }}>
-                  <label>텍스트 크기: {activeLayer.size}px</label>
+                  <label>크기: {activeLayer.size}px</label>
                   <input type="range" min="20" max="120" value={activeLayer.size} onChange={(e) => updateLayer(activeLayer.id, { size: Number(e.target.value) })} />
                 </div>
                 <div className="control-group">
