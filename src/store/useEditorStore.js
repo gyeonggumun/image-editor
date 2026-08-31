@@ -4,7 +4,10 @@ const useEditorStore = create((set) => ({
   image: null,
   ratio: '1:1',
   layers: [
-    { id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, color: '#ffffff' }
+    { 
+      id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, 
+      color: '#18181b', color2: '#a1a1aa', useGradient: false, fontFamily: 'sans-serif' 
+    }
   ],
   activeLayerId: null,
   stickers: [], 
@@ -17,13 +20,16 @@ const useEditorStore = create((set) => ({
   setRatio: (ratio) => set({ ratio }),
   
   addLayer: () => set((state) => {
-    const newLayer = { id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 40, color: '#ffffff' };
+    const newLayer = { 
+      id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 40, 
+      color: '#18181b', color2: '#a1a1aa', useGradient: false, fontFamily: 'sans-serif' 
+    };
     return { layers: [...state.layers, newLayer], activeLayerId: newLayer.id, activeStickerId: null };
   }),
   
   updateLayer: (id, updates) => set((state) => ({
     layers: state.layers.map(layer => layer.id === id ? { ...layer, ...updates } : layer)
-  })), // 🌟 누락되었던 괄호 수정 완료
+  })),
   
   deleteLayer: (id) => set((state) => ({
     layers: state.layers.filter(layer => layer.id !== id),
