@@ -65,7 +65,6 @@ function ControlPanel() {
 
       <hr style={{ margin: '20px 0', borderColor: 'var(--border-base)', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
 
-      {/* 텍스트 패널 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>텍스트 레이어</h3>
         <button className="action-sm-btn" onClick={addLayer} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -93,7 +92,6 @@ function ControlPanel() {
         ))}
       </ul>
 
-      {/* 스티커 패널 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>에셋 (로고/아이콘)</h3>
         <label className="action-sm-btn" style={{ cursor: 'pointer', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -120,7 +118,6 @@ function ControlPanel() {
         ))}
       </ul>
 
-      {/* 속성 편집 컨트롤 */}
       {(activeLayer || activeSticker) ? (
         <div style={{ background: 'var(--bg-canvas)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-base)' }}>
           
@@ -158,15 +155,46 @@ function ControlPanel() {
                 <label>문구</label>
                 <textarea className="control-input" rows="3" value={activeLayer.text} onChange={(e) => updateLayer(activeLayer.id, { text: e.target.value })} />
               </div>
+
               <div style={{ display: 'flex', gap: '12px' }}>
                 <div className="control-group" style={{ flex: 1 }}>
+                  <label>글꼴</label>
+                  <select className="control-input" value={activeLayer.fontFamily || 'sans-serif'} onChange={(e) => updateLayer(activeLayer.id, { fontFamily: e.target.value })}>
+                    <option value="sans-serif">기본 (고딕)</option>
+                    <option value="serif">명조</option>
+                    <option value="monospace">고정폭</option>
+                    <option value="'Courier New', Courier, monospace">타자기</option>
+                    <option value="'Impact', sans-serif">임팩트</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="control-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+                <input 
+                  type="checkbox" 
+                  id="gradient-toggle"
+                  checked={activeLayer.useGradient || false} 
+                  onChange={(e) => updateLayer(activeLayer.id, { useGradient: e.target.checked })} 
+                  style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <label htmlFor="gradient-toggle" style={{ cursor: 'pointer' }}>그라데이션 사용</label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                <div className="control-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label>크기: {activeLayer.size}px</label>
                   <input type="range" min="20" max="120" value={activeLayer.size} onChange={(e) => updateLayer(activeLayer.id, { size: Number(e.target.value) })} />
                 </div>
-                <div className="control-group" style={{ width: '60px' }}>
-                  <label>색상</label>
+                <div className="control-group" style={{ width: '60px', marginBottom: 0 }}>
+                  <label>색상 1</label>
                   <input type="color" className="control-input" style={{ padding: '0', height: '32px', width: '100%', border: 'none' }} value={activeLayer.color} onChange={(e) => updateLayer(activeLayer.id, { color: e.target.value })} />
                 </div>
+                {activeLayer.useGradient && (
+                  <div className="control-group" style={{ width: '60px', marginBottom: 0 }}>
+                    <label>색상 2</label>
+                    <input type="color" className="control-input" style={{ padding: '0', height: '32px', width: '100%', border: 'none' }} value={activeLayer.color2 || '#a1a1aa'} onChange={(e) => updateLayer(activeLayer.id, { color2: e.target.value })} />
+                  </div>
+                )}
               </div>
             </>
           )}
