@@ -1,156 +1,194 @@
+/* src/App.css */
 :root {
-  --primary-color: #4f46e5;
-  --primary-hover: #4338ca;
-  --bg-color: #f3f4f6;
-  --panel-bg: #ffffff;
-  --text-main: #1f2937;
+  --primary: #171717;
+  --primary-hover: #404040;
+  --bg-main: #f9fafb;
+  --bg-panel: #ffffff;
+  --text-main: #111827;
   --text-label: #4b5563;
-  --border-color: #e5e7eb;
+  --text-muted: #9ca3af;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --radius: 4px; /* 둥근 모서리 최소화 */
 }
 
 body {
   margin: 0;
-  background-color: var(--bg-color);
-  font-family: 'Pretendard', -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-main);
+  font-size: 14px;
 }
 
 .editor-layout {
   display: flex;
   flex-wrap: wrap;
-  max-width: 1200px;
-  margin: 40px auto;
-  gap: 30px;
-  padding: 0 20px;
+  max-width: 1280px;
+  margin: 24px auto;
+  gap: 24px;
+  padding: 0 24px;
+  align-items: flex-start;
 }
 
+/* 패널 공통 (그림자 제거, 1px 실선 테두리) */
 .control-panel {
   flex: 1;
-  min-width: 350px;
-  background: var(--panel-bg);
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.panel-title {
-  margin-top: 0;
-  margin-bottom: 24px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  border-bottom: 2px solid var(--border-color);
-  padding-bottom: 12px;
-  text-align: center;
-}
-
-.control-group {
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.control-group label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-label);
-  text-align: center;
-}
-
-.control-input {
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-}
-
-.control-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-}
-
-textarea.control-input {
-  resize: vertical;
+  min-width: 320px;
+  max-width: 360px;
+  background: var(--bg-panel);
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .preview-panel {
   flex: 2;
   display: flex;
   flex-direction: column;
-  align-items: center;
   min-width: 400px;
 }
 
-.canvas-container {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+/* 제목 영역 (장식 제거, 크기 축소) */
+.panel-title,
+.template-section-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  text-align: left;
 }
 
-.action-btn {
-  margin-top: 20px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  font-size: 1rem;
+.template-section-title {
+  margin-bottom: 12px;
+}
+
+h3 {
+  font-size: 14px;
   font-weight: 600;
-  border-radius: 8px;
+}
+
+/* 컨트롤 그룹 */
+.control-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-label);
+  text-align: left;
+}
+
+/* 입력창 및 셀렉트 박스 */
+.control-input {
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text-main);
+  background-color: var(--bg-panel);
+  transition: border-color 0.1s;
+}
+
+.control-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+textarea.control-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+input[type="range"] {
+  accent-color: var(--primary);
+  margin: 8px 0;
+}
+
+input[type="color"].control-input {
+  padding: 2px;
   cursor: pointer;
-  transition: background-color 0.2s;
+}
+
+/* 버튼 (그라데이션/그림자 배제, 단색 플랫 디자인) */
+.btn-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.action-btn,
+.secondary-btn, 
+.file-upload-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.1s;
+  white-space: nowrap;
+}
+
+/* 프라이머리 버튼 (내려받기 등) */
+.action-btn {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: 1px solid var(--primary);
   width: 100%;
-  max-width: 300px;
+  padding: 10px 16px;
+  font-size: 14px;
+  margin-top: 16px;
 }
 
 .action-btn:hover {
   background-color: var(--primary-hover);
 }
 
-/* 템플릿 관리 영역 디자인 추가 */
-.template-section-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 15px;
+/* 세컨더리 버튼 & 파일 업로드 라벨 */
+.secondary-btn, 
+.file-upload-label {
+  background-color: var(--bg-panel);
+  color: var(--text-main);
+  border: 1px solid var(--border-strong);
 }
 
-.btn-group {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.secondary-btn, .file-upload-label {
-  background-color: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  padding: 8px 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-  white-space: nowrap; /* 글씨 줄바꿈 방지 */
-}
-
-.secondary-btn:hover, .file-upload-label:hover {
-  background-color: #e5e7eb;
-  border-color: #9ca3af;
+.secondary-btn:hover, 
+.file-upload-label:hover {
+  background-color: var(--bg-main);
 }
 
 .file-upload-input {
-  display: none; /* 못생긴 기본 input 숨기기 */
+  display: none;
 }
 
+/* 캔버스 영역 (어두운 배경 대비로 캔버스 자체에 집중) */
+.canvas-container {
+  background: var(--bg-main);
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+}
+
+canvas {
+  background-color: #ffffff;
+  box-shadow: 0 0 0 1px var(--border); /* 부드러운 박스섀도우 대신 1px 아웃라인 */
+}
+
+/* 리스트 항목 (카드 스타일 제거, 텍스트 위주 선형 리스트) */
 .template-list {
   list-style: none;
   padding: 0;
@@ -161,46 +199,45 @@ textarea.control-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  padding: 10px 12px;
-  border-radius: 6px;
-  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.template-item:last-child {
+  border-bottom: none;
 }
 
 .template-item span {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 13px;
+  color: var(--text-main);
 }
 
+/* 작은 액션 버튼 (삭제, 적용 등) */
 .template-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 .action-sm-btn {
-  background-color: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #4b5563;
-  padding: 6px 10px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 4px;
+  background-color: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-label);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: 0.2s;
 }
 
 .action-sm-btn:hover {
-  background-color: #f3f4f6;
-  color: #111827;
-}
-
-.action-sm-btn.delete {
-  color: #dc2626;
+  background-color: var(--bg-main);
+  color: var(--text-main);
 }
 
 .action-sm-btn.delete:hover {
   background-color: #fef2f2;
+  color: #dc2626;
   border-color: #f87171;
 }
