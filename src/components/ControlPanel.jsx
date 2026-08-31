@@ -35,6 +35,27 @@ function ControlPanel() {
 
   const activeLayer = layers.find(l => l.id === activeLayerId);
   const activeSticker = stickers.find(s => s.id === activeStickerId);
+  
+  // 구버전 템플릿 호환성을 위한 배열 보정
+  const currentGradientColors = activeLayer?.gradientColors || [activeLayer?.color, activeLayer?.color2 || '#a1a1aa'];
+
+  const addGradientColor = () => {
+    if (currentGradientColors.length < 5) {
+      updateLayer(activeLayer.id, { gradientColors: [...currentGradientColors, '#ffffff'] });
+    }
+  };
+
+  const removeGradientColor = () => {
+    if (currentGradientColors.length > 2) {
+      updateLayer(activeLayer.id, { gradientColors: currentGradientColors.slice(0, -1) });
+    }
+  };
+
+  const handleGradientChange = (index, newColor) => {
+    const updated = [...currentGradientColors];
+    updated[index] = newColor;
+    updateLayer(activeLayer.id, { gradientColors: updated });
+  };
 
   return (
     <>
@@ -75,7 +96,7 @@ function ControlPanel() {
         </button>
       </div>
       <ul className="template-list" style={{ marginBottom: '20px' }}>
-        {layers.map((layer, index) => (
+        {layers.map((layer) => (
           <li key={layer.id} className="template-item" 
             style={{ 
               borderColor: activeLayerId === layer.id ? 'var(--text-secondary)' : 'var(--border-base)', 
@@ -167,9 +188,13 @@ function ControlPanel() {
                     <option value="'Impact', sans-serif">임팩트</option>
                   </select>
                 </div>
+                <div className="control-group" style={{ flex: 1 }}>
+                  <label>크기: {activeLayer.size}px</label>
+                  <input type="range" min="20" max="120" value={activeLayer.size} onChange={(e) => updateLayer(activeLayer.id, { size: Number(e.target.value) })} />
+                </div>
               </div>
 
-              <div className="control-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+              <div className="control-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
                 <input 
                   type="checkbox" 
                   id="gradient-toggle"
@@ -180,22 +205,35 @@ function ControlPanel() {
                 <label htmlFor="gradient-toggle" style={{ cursor: 'pointer' }}>그라데이션 사용</label>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                <div className="control-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label>크기: {activeLayer.size}px</label>
-                  <input type="range" min="20" max="120" value={activeLayer.size} onChange={(e) => updateLayer(activeLayer.id, { size: Number(e.target.value) })} />
-                </div>
-                <div className="control-group" style={{ width: '60px', marginBottom: 0 }}>
-                  <label>색상 1</label>
+              {!activeLayer.useGradient ? (
+                <div className="control-group" style={{ width: '60px', marginTop: '8px' }}>
+                  <label>단일 색상</label>
                   <input type="color" className="control-input" style={{ padding: '0', height: '32px', width: '100%', border: 'none' }} value={activeLayer.color} onChange={(e) => updateLayer(activeLayer.id, { color: e.target.value })} />
                 </div>
-                {activeLayer.useGradient && (
-                  <div className="control-group" style={{ width: '60px', marginBottom: 0 }}>
-                    <label>색상 2</label>
-                    <input type="color" className="control-input" style={{ padding: '0', height: '32px', width: '100%', border: 'none' }} value={activeLayer.color2 || '#a1a1aa'} onChange={(e) => updateLayer(activeLayer.id, { color2: e.target.value })} />
+              ) : (
+                <div className="control-group" style={{ marginTop: '8px', padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ margin: 0 }}>색상 분할 ({currentGradientColors.length}/5)</label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button className="action-sm-btn" onClick={removeGradientColor} disabled={currentGradientColors.length <= 2}>- 축소</button>
+                      <button className="action-sm-btn" onClick={addGradientColor} disabled={currentGradientColors.length >= 5}>+ 추가</button>
+                    </div>
                   </div>
-                )}
-              </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {currentGradientColors.map((color, index) => (
+                      <input 
+                        key={index} 
+                        type="color" 
+                        className="control-input" 
+                        style={{ padding: '0', height: '32px', width: '40px', border: 'none' }} 
+                        value={color} 
+                        onChange={(e) => handleGradientChange(index, e.target.value)} 
+                        title={`색상 ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
