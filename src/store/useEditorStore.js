@@ -6,7 +6,8 @@ const useEditorStore = create((set) => ({
   layers: [
     { 
       id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, 
-      color: '#18181b', color2: '#a1a1aa', useGradient: false, fontFamily: 'sans-serif' 
+      color: '#18181b', useGradient: false, fontFamily: 'sans-serif',
+      gradientColors: ['#18181b', '#a1a1aa']
     }
   ],
   activeLayerId: null,
@@ -22,7 +23,8 @@ const useEditorStore = create((set) => ({
   addLayer: () => set((state) => {
     const newLayer = { 
       id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 40, 
-      color: '#18181b', color2: '#a1a1aa', useGradient: false, fontFamily: 'sans-serif' 
+      color: '#18181b', useGradient: false, fontFamily: 'sans-serif',
+      gradientColors: ['#18181b', '#a1a1aa']
     };
     return { layers: [...state.layers, newLayer], activeLayerId: newLayer.id, activeStickerId: null };
   }),
@@ -40,7 +42,6 @@ const useEditorStore = create((set) => ({
     const index = state.layers.findIndex(l => l.id === id);
     if (index < 0) return state;
     const newLayers = [...state.layers];
-    
     if (direction === 'up' && index < newLayers.length - 1) { 
       [newLayers[index], newLayers[index + 1]] = [newLayers[index + 1], newLayers[index]];
       return { layers: newLayers };
@@ -56,11 +57,9 @@ const useEditorStore = create((set) => ({
     const newSticker = { id: Date.now(), src, x: 150, y: 150, width: 100, height: 100 };
     return { stickers: [...state.stickers, newSticker], activeStickerId: newSticker.id, activeLayerId: null };
   }),
-  
   updateSticker: (id, updates) => set((state) => ({
     stickers: state.stickers.map(s => s.id === id ? { ...s, ...updates } : s)
   })),
-  
   deleteSticker: (id) => set((state) => ({
     stickers: state.stickers.filter(s => s.id !== id),
     activeStickerId: state.activeStickerId === id ? null : state.activeStickerId
@@ -70,7 +69,6 @@ const useEditorStore = create((set) => ({
     const index = state.stickers.findIndex(s => s.id === id);
     if (index < 0) return state;
     const newStickers = [...state.stickers];
-    
     if (direction === 'up' && index < newStickers.length - 1) {
       [newStickers[index], newStickers[index + 1]] = [newStickers[index + 1], newStickers[index]];
       return { stickers: newStickers };
