@@ -1,44 +1,72 @@
-/* src/App.css */
 :root {
-  --primary: #171717;
-  --primary-hover: #404040;
-  --bg-main: #f9fafb;
-  --bg-panel: #ffffff;
-  --text-main: #111827;
-  --text-label: #4b5563;
-  --text-muted: #9ca3af;
-  --border: #e5e7eb;
-  --border-strong: #d1d5db;
-  --radius: 4px; /* 둥근 모서리 최소화 */
+  /* 절제된 모노톤 색상 시스템 */
+  --bg-canvas: #f4f4f5;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #fafafa;
+  --border-base: #e4e4e7;
+  --border-hover: #d4d4d8;
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+  
+  /* 프라이머리 액션 색상 (다크 그레이) */
+  --accent: #27272a;
+  --accent-hover: #000000;
+  --accent-text: #ffffff;
+
+  /* 일관된 Spacing System (4px 배수 기반) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-8: 48px;
+
+  /* 명확한 Typography Hierarchy */
+  --font-xs: 0.75rem;   /* 12px */
+  --font-sm: 0.875rem;  /* 14px */
+  --font-base: 1rem;    /* 16px */
+  --font-lg: 1.125rem;  /* 18px */
+
+  /* 과하지 않은 Border와 Shadow */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
   margin: 0;
-  background-color: var(--bg-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: var(--text-main);
-  font-size: 14px;
+  background-color: var(--bg-canvas);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* 미니멀한 레이아웃 */
 .editor-layout {
   display: flex;
   flex-wrap: wrap;
-  max-width: 1280px;
-  margin: 24px auto;
-  gap: 24px;
-  padding: 0 24px;
+  max-width: 1400px;
+  margin: var(--sp-8) auto;
+  gap: var(--sp-6);
+  padding: 0 var(--sp-5);
   align-items: flex-start;
 }
 
-/* 패널 공통 (그림자 제거, 1px 실선 테두리) */
+/* 정돈된 카드 및 컴포넌트 */
 .control-panel {
   flex: 1;
   min-width: 320px;
-  max-width: 360px;
-  background: var(--bg-panel);
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  max-width: 380px;
+  background: var(--bg-surface);
+  padding: var(--sp-6);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-subtle);
 }
 
 .preview-panel {
@@ -48,79 +76,91 @@ body {
   min-width: 400px;
 }
 
-/* 제목 영역 (장식 제거, 크기 축소) */
-.panel-title,
-.template-section-title {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 16px;
+/* 높은 가독성을 위한 텍스트 스타일 */
+.panel-title {
+  margin: 0 0 var(--sp-5) 0;
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: var(--text-main);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 12px;
-  text-align: left;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
 }
 
 .template-section-title {
-  margin-bottom: 12px;
-}
-
-h3 {
-  font-size: 14px;
+  margin: 0 0 var(--sp-3) 0;
+  font-size: var(--font-base);
   font-weight: 600;
+  color: var(--text-primary);
 }
 
-/* 컨트롤 그룹 */
 .control-group {
-  margin-bottom: 16px;
+  margin-bottom: var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-2);
 }
 
 .control-group label {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 500;
-  color: var(--text-label);
-  text-align: left;
+  color: var(--text-secondary);
 }
 
-/* 입력창 및 셀렉트 박스 */
+/* 입력 필드 */
 .control-input {
-  padding: 8px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  font-size: 14px;
-  color: var(--text-main);
-  background-color: var(--bg-panel);
-  transition: border-color 0.1s;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  font-family: inherit;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  transition: var(--transition-base);
 }
 
 .control-input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--text-secondary);
+  box-shadow: 0 0 0 1px var(--text-secondary);
 }
 
 textarea.control-input {
   resize: vertical;
-  min-height: 60px;
+  min-height: 80px;
+  line-height: 1.5;
 }
 
+/* 커스텀 Range Slider */
 input[type="range"] {
-  accent-color: var(--primary);
-  margin: 8px 0;
+  accent-color: var(--text-secondary);
+  height: 4px;
+  background-color: var(--border-base);
+  border-radius: 2px;
+  appearance: none;
+  margin: var(--sp-2) 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-base);
 }
 
 input[type="color"].control-input {
   padding: 2px;
+  height: 36px;
   cursor: pointer;
 }
 
-/* 버튼 (그라데이션/그림자 배제, 단색 플랫 디자인) */
+/* 세련된 Hover Interaction을 적용한 버튼 */
 .btn-group {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
   flex-wrap: wrap;
 }
 
@@ -130,114 +170,122 @@ input[type="color"].control-input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--font-sm);
   font-weight: 500;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background-color 0.1s;
-  white-space: nowrap;
+  transition: var(--transition-base);
+  text-decoration: none;
 }
 
-/* 프라이머리 버튼 (내려받기 등) */
 .action-btn {
-  background-color: var(--primary);
-  color: #ffffff;
-  border: 1px solid var(--primary);
+  background-color: var(--accent);
+  color: var(--accent-text);
+  border: 1px solid var(--accent);
   width: 100%;
-  padding: 10px 16px;
-  font-size: 14px;
-  margin-top: 16px;
+  padding: var(--sp-3) var(--sp-4);
+  margin-top: var(--sp-4);
 }
 
 .action-btn:hover {
-  background-color: var(--primary-hover);
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
 }
 
-/* 세컨더리 버튼 & 파일 업로드 라벨 */
 .secondary-btn, 
 .file-upload-label {
-  background-color: var(--bg-panel);
-  color: var(--text-main);
-  border: 1px solid var(--border-strong);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-base);
 }
 
 .secondary-btn:hover, 
 .file-upload-label:hover {
-  background-color: var(--bg-main);
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
 }
 
 .file-upload-input {
   display: none;
 }
 
-/* 캔버스 영역 (어두운 배경 대비로 캔버스 자체에 집중) */
+/* 복잡함을 덜어낸 캔버스 배경 처리 */
 .canvas-container {
-  background: var(--bg-main);
-  padding: 32px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: var(--bg-canvas);
+  padding: var(--sp-8);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-md);
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: auto;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
 }
 
 canvas {
-  background-color: #ffffff;
-  box-shadow: 0 0 0 1px var(--border); /* 부드러운 박스섀도우 대신 1px 아웃라인 */
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-subtle);
 }
 
-/* 리스트 항목 (카드 스타일 제거, 텍스트 위주 선형 리스트) */
+/* 정돈된 리스트 아이템 */
 .template-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
 }
 
 .template-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0;
-  border-radius: 0;
-  background: transparent;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  transition: var(--transition-base);
 }
 
-.template-item:last-child {
-  border-bottom: none;
+.template-item:hover {
+  border-color: var(--border-hover);
+  background-color: var(--bg-surface-hover);
 }
 
 .template-item span {
-  font-size: 13px;
-  color: var(--text-main);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
-/* 작은 액션 버튼 (삭제, 적용 등) */
+/* 서브 액션 버튼 */
 .template-actions {
   display: flex;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 
 .action-sm-btn {
   background-color: transparent;
-  border: 1px solid var(--border-strong);
-  color: var(--text-label);
-  padding: 4px 8px;
-  font-size: 12px;
-  border-radius: var(--radius);
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: var(--transition-base);
 }
 
 .action-sm-btn:hover {
-  background-color: var(--bg-main);
-  color: var(--text-main);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
 }
 
 .action-sm-btn.delete:hover {
   background-color: #fef2f2;
-  color: #dc2626;
-  border-color: #f87171;
+  color: #ef4444;
 }
