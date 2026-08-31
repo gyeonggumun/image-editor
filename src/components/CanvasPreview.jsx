@@ -66,7 +66,6 @@ function CanvasPreview() {
     });
 
     layers.forEach(layer => {
-      // 폰트 속성 적용
       ctx.font = `bold ${layer.size}px ${layer.fontFamily || 'sans-serif'}`;
       ctx.textBaseline = 'top';
       
@@ -100,15 +99,20 @@ function CanvasPreview() {
         finalLines.push(currentLine); 
       });
 
-      // 그라데이션 및 렌더링 로직
+      // 🌟 배열 길이만큼 그라데이션 정지점을 분할
       finalLines.forEach((line, index) => {
         const currentY = layer.y + (index * (layer.size * 1.2));
+        const gradientColors = layer.gradientColors || [layer.color, layer.color2 || '#a1a1aa'];
         
-        if (layer.useGradient) {
+        if (layer.useGradient && gradientColors.length >= 2) {
           const metrics = ctx.measureText(line);
           const gradient = ctx.createLinearGradient(layer.x, currentY, layer.x + metrics.width, currentY);
-          gradient.addColorStop(0, layer.color);
-          gradient.addColorStop(1, layer.color2 || '#a1a1aa');
+          
+          const step = 1 / (gradientColors.length - 1);
+          gradientColors.forEach((color, i) => {
+            gradient.addColorStop(i * step, color);
+          });
+          
           ctx.fillStyle = gradient;
         } else {
           ctx.fillStyle = layer.color;
@@ -187,7 +191,6 @@ function CanvasPreview() {
     let targetY = pos.y - dragOffset.y;
     let guideX = null;
     let guideY = null;
-    
     const SNAP_THRESHOLD = 15;
 
     if (Math.abs(targetX - width / 2) < SNAP_THRESHOLD) {
