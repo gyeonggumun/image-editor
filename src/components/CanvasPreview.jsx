@@ -56,9 +56,9 @@ function CanvasPreview() {
       } else {
         ctx.drawImage(img, sticker.x, sticker.y, sticker.width, sticker.height);
         if (sticker.id === activeStickerId) {
-          ctx.strokeStyle = '#4f46e5';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = '#18181b';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
           ctx.strokeRect(sticker.x - 2, sticker.y - 2, sticker.width + 4, sticker.height + 4);
           ctx.setLineDash([]);
         }
@@ -66,19 +66,19 @@ function CanvasPreview() {
     });
 
     layers.forEach(layer => {
-      ctx.font = `bold ${layer.size}px sans-serif`;
-      ctx.fillStyle = layer.color;
+      // 폰트 속성 적용
+      ctx.font = `bold ${layer.size}px ${layer.fontFamily || 'sans-serif'}`;
       ctx.textBaseline = 'top';
       
       if (layer.id === activeLayerId) {
-        ctx.shadowColor = 'rgba(79, 70, 229, 0.8)';
-        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 6;
       } else {
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-        ctx.shadowBlur = 4;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        ctx.shadowBlur = 2;
       }
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
       
       const maxTextWidth = width - layer.x - 20; 
       const paragraphs = layer.text.split('\n');
@@ -100,17 +100,29 @@ function CanvasPreview() {
         finalLines.push(currentLine); 
       });
 
+      // 그라데이션 및 렌더링 로직
       finalLines.forEach((line, index) => {
-        ctx.fillText(line, layer.x, layer.y + (index * (layer.size * 1.2)));
+        const currentY = layer.y + (index * (layer.size * 1.2));
+        
+        if (layer.useGradient) {
+          const metrics = ctx.measureText(line);
+          const gradient = ctx.createLinearGradient(layer.x, currentY, layer.x + metrics.width, currentY);
+          gradient.addColorStop(0, layer.color);
+          gradient.addColorStop(1, layer.color2 || '#a1a1aa');
+          ctx.fillStyle = gradient;
+        } else {
+          ctx.fillStyle = layer.color;
+        }
+        
+        ctx.fillText(line, layer.x, currentY);
       });
       ctx.shadowColor = 'transparent';
     });
 
-    // 🌟 가이드라인 렌더링 (드래그 중에만 표시)
     if (isDragging) {
-      ctx.strokeStyle = '#ef4444'; // 붉은색 점선
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = '#ef4444'; 
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
       
       if (guidelines.x !== null) {
         ctx.beginPath();
@@ -124,7 +136,7 @@ function CanvasPreview() {
         ctx.lineTo(width, guidelines.y);
         ctx.stroke();
       }
-      ctx.setLineDash([]); // 초기화
+      ctx.setLineDash([]); 
     }
 
   }, [image, ratio, layers, activeLayerId, stickers, activeStickerId, guidelines, isDragging]);
@@ -143,7 +155,7 @@ function CanvasPreview() {
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const approxHeight = layer.text.split('\n').length * layer.size * 1.2;
-      const hitBoxWidth = Math.max(200, layer.size * 5); 
+      const hitBoxWidth = Math.max(100, layer.size * 3); 
       if (pos.x >= layer.x - 10 && pos.x <= layer.x + hitBoxWidth && pos.y >= layer.y - 10 && pos.y <= layer.y + approxHeight) {
         setActiveLayer(layer.id);
         setIsDragging(true);
@@ -166,7 +178,6 @@ function CanvasPreview() {
     setActiveSticker(null);
   };
 
-  // 🌟 마우스 이동 중 스냅(자석 효과) 계산
   const handleMouseMove = (e) => {
     if (!isDragging) return;
     const pos = getMousePos(e);
@@ -177,14 +188,12 @@ function CanvasPreview() {
     let guideX = null;
     let guideY = null;
     
-    const SNAP_THRESHOLD = 15; // 15px 이내 접근 시 스냅
+    const SNAP_THRESHOLD = 15;
 
-    // 캔버스 가로 중앙 스냅
     if (Math.abs(targetX - width / 2) < SNAP_THRESHOLD) {
       targetX = width / 2;
       guideX = width / 2;
     }
-    // 캔버스 세로 중앙 스냅
     if (Math.abs(targetY - height / 2) < SNAP_THRESHOLD) {
       targetY = height / 2;
       guideY = height / 2;
@@ -199,7 +208,6 @@ function CanvasPreview() {
     setGuidelines({ x: guideX, y: guideY });
   };
 
-  // 🌟 마우스를 뗄 때 가이드라인 초기화
   const handleMouseUp = () => {
     setIsDragging(false);
     setGuidelines({ x: null, y: null });
