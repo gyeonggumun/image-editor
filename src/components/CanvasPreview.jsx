@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import useEditorStore from '../store/useEditorStore';
 
 function CanvasPreview() {
+  const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const { 
     image, ratio, layers, activeLayerId, setActiveLayer, updateLayer,
@@ -9,13 +10,28 @@ function CanvasPreview() {
     guidelines, setGuidelines, saveHistory, undo, redo 
   } = useEditorStore();
   
+  // 🌟 에디터 요소 드래그 상태
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const stickerCache = useRef({});
   const [, setRenderTrigger] = useState(0);
 
+  // 🌟 확대/축소 및 화면 이동(Pan) 상태
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // 키보드 단축키 (Undo/Redo 및 Space 바 감지)
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (['TEXTAREA', 'INPUT'].includes(e.target.tagName)) return;
+      
+      if (e.code === 'Space' && !isSpacePressed) {
+        e.preventDefault();
+        setIsSpacePressed(true);
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) redo();
@@ -25,9 +41,35 @@ function CanvasPreview() {
         redo();
       }
     };
+    
+    const handleKeyUp = (e) => {
+      if (e.code === 'Space') {
+        setIsSpacePressed(false);
+        setIsPanning(false);
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [undo, redo, isSpacePressed]);
+
+  // 마우스 휠 확대/축소 이벤트 연결
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const handleWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setZoom(prev => Math.min(Math.max(0.2, prev - e.deltaY * 0.002), 3));
+      }
+    };
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const getCanvasDimensions = () => {
     const baseWidth = 600;
@@ -36,6 +78,7 @@ function CanvasPreview() {
     return { width: baseWidth, height: baseWidth * (16 / 9) };
   };
 
+  // 캔버스 렌더링 로직
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -163,7 +206,15 @@ function CanvasPreview() {
   };
 
   const handleMouseDown = (e) => {
+    // 🌟 Space 바를 누른 상태면 캔버스 이동(Pan) 모드로 전환
+    if (isSpacePressed) {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      return;
+    }
+
     const pos = getMousePos(e);
+    
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const approxHeight = layer.text.split('\n').length * layer.size * 1.2;
@@ -176,6 +227,7 @@ function CanvasPreview() {
         return;
       }
     }
+    
     for (let i = stickers.length - 1; i >= 0; i--) {
       const s = stickers[i];
       if (pos.x >= s.x && pos.x <= s.x + s.width && pos.y >= s.y && pos.y <= s.y + s.height) {
@@ -186,11 +238,18 @@ function CanvasPreview() {
         return;
       }
     }
+    
     setActiveLayer(null);
     setActiveSticker(null);
   };
 
   const handleMouseMove = (e) => {
+    // 🌟 화면 이동(Pan) 처리
+    if (isPanning) {
+      setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+      return;
+    }
+
     if (!isDragging) return;
     const pos = getMousePos(e);
     const { width, height } = getCanvasDimensions();
@@ -211,15 +270,48 @@ function CanvasPreview() {
   };
 
   const handleMouseUp = () => {
+    setIsPanning(false);
     setIsDragging(false);
     setGuidelines({ x: null, y: null });
   };
 
   return (
-    <div className="preview-panel">
-      <div className="canvas-container">
-        <canvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} style={{ cursor: isDragging ? 'grabbing' : 'grab' }} />
+    <div className="preview-panel" style={{ position: 'relative' }}>
+      
+      {/* 🌟 줌 컨트롤 UI */}
+      <div style={{ position: 'absolute', bottom: '80px', right: '20px', zIndex: 10, display: 'flex', gap: '4px', background: 'var(--bg-surface)', padding: '4px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border-base)' }}>
+        <button className="action-sm-btn" onClick={() => setZoom(prev => Math.max(0.2, prev - 0.1))} title="축소">-</button>
+        <span style={{ fontSize: '12px', padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: '500' }}>
+          {Math.round(zoom * 100)}%
+        </span>
+        <button className="action-sm-btn" onClick={() => setZoom(prev => Math.min(3, prev + 0.1))} title="확대">+</button>
+        <button className="action-sm-btn" onClick={() => { setZoom(1); setPan({x:0, y:0}); }} title="초기화">Reset</button>
       </div>
+
+      <div 
+        ref={containerRef}
+        className="canvas-container" 
+        style={{ 
+          overflow: 'hidden', 
+          cursor: isSpacePressed ? (isPanning ? 'grabbing' : 'grab') : 'default' 
+        }}
+      >
+        <div style={{ 
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, 
+          transformOrigin: 'center center',
+          transition: isPanning ? 'none' : 'transform 0.1s ease-out'
+        }}>
+          <canvas 
+            ref={canvasRef} 
+            onMouseDown={handleMouseDown} 
+            onMouseMove={handleMouseMove} 
+            onMouseUp={handleMouseUp} 
+            onMouseLeave={handleMouseUp} 
+            style={{ cursor: isDragging ? 'grabbing' : (isSpacePressed ? 'inherit' : 'default') }} 
+          />
+        </div>
+      </div>
+      
       <button className="action-btn" onClick={() => {
         const link = document.createElement('a');
         link.download = `result-${Date.now()}.png`;
