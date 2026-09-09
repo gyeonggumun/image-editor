@@ -1,15 +1,12 @@
 import { create } from 'zustand';
 
-const useEditorStore = create((set) => ({
+const useEditorStore = create((set, get) => ({
   image: null,
   ratio: '1:1',
-  layers: [
-    { 
-      id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, 
-      color: '#18181b', useGradient: false, fontFamily: 'sans-serif',
-      gradientColors: ['#18181b', '#a1a1aa']
-    }
-  ],
+  layers: [{ 
+    id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, 
+    color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa']
+  }],
   activeLayerId: null,
   stickers: [], 
   activeStickerId: null,
@@ -17,68 +14,113 @@ const useEditorStore = create((set) => ({
   templates: [],
   errorMessage: '',
 
+  // 🌟 히스토리 상태 (Undo / Redo 용)
+  past: [],
+  future: [],
+
+  saveHistory: () => {
+    const { layers, stickers } = get();
+    set((state) => ({
+      past: [...state.past, { 
+        layers: JSON.parse(JSON.stringify(layers)), 
+        stickers: JSON.parse(JSON.stringify(stickers)) 
+      }].slice(-30), // 최근 30개까지만 저장하여 메모리 최적화
+      future: []
+    }));
+  },
+
+  undo: () => {
+    const { past, layers, stickers } = get();
+    if (past.length === 0) return;
+    const previous = past[past.length - 1];
+    set((state) => ({
+      past: state.past.slice(0, -1),
+      future: [{ layers: JSON.parse(JSON.stringify(layers)), stickers: JSON.parse(JSON.stringify(stickers)) }, ...state.future],
+      layers: previous.layers,
+      stickers: previous.stickers,
+      activeLayerId: null, activeStickerId: null
+    }));
+  },
+
+  redo: () => {
+    const { future, layers, stickers } = get();
+    if (future.length === 0) return;
+    const next = future[0];
+    set((state) => ({
+      past: [...state.past, { layers: JSON.parse(JSON.stringify(layers)), stickers: JSON.parse(JSON.stringify(stickers)) }],
+      future: state.future.slice(1),
+      layers: next.layers,
+      stickers: next.stickers,
+      activeLayerId: null, activeStickerId: null
+    }));
+  },
+
   setImage: (img) => set({ image: img }),
   setRatio: (ratio) => set({ ratio }),
   
-  addLayer: () => set((state) => {
-    const newLayer = { 
-      id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 40, 
-      color: '#18181b', useGradient: false, fontFamily: 'sans-serif',
-      gradientColors: ['#18181b', '#a1a1aa']
-    };
-    return { layers: [...state.layers, newLayer], activeLayerId: newLayer.id, activeStickerId: null };
-  }),
+  addLayer: () => {
+    get().saveHistory();
+    set((state) => {
+      const newLayer = { id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 40, color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa'] };
+      return { layers: [...state.layers, newLayer], activeLayerId: newLayer.id, activeStickerId: null };
+    });
+  },
   
   updateLayer: (id, updates) => set((state) => ({
     layers: state.layers.map(layer => layer.id === id ? { ...layer, ...updates } : layer)
   })),
   
-  deleteLayer: (id) => set((state) => ({
-    layers: state.layers.filter(layer => layer.id !== id),
-    activeLayerId: state.activeLayerId === id ? null : state.activeLayerId
-  })),
+  deleteLayer: (id) => {
+    get().saveHistory();
+    set((state) => ({
+      layers: state.layers.filter(layer => layer.id !== id),
+      activeLayerId: state.activeLayerId === id ? null : state.activeLayerId
+    }));
+  },
 
-  reorderLayer: (id, direction) => set((state) => {
-    const index = state.layers.findIndex(l => l.id === id);
-    if (index < 0) return state;
-    const newLayers = [...state.layers];
-    if (direction === 'up' && index < newLayers.length - 1) { 
-      [newLayers[index], newLayers[index + 1]] = [newLayers[index + 1], newLayers[index]];
+  reorderLayer: (id, direction) => {
+    get().saveHistory();
+    set((state) => {
+      const index = state.layers.findIndex(l => l.id === id);
+      if (index < 0) return state;
+      const newLayers = [...state.layers];
+      if (direction === 'up' && index < newLayers.length - 1) [newLayers[index], newLayers[index + 1]] = [newLayers[index + 1], newLayers[index]];
+      if (direction === 'down' && index > 0) [newLayers[index], newLayers[index - 1]] = [newLayers[index - 1], newLayers[index]];
       return { layers: newLayers };
-    }
-    if (direction === 'down' && index > 0) { 
-      [newLayers[index], newLayers[index - 1]] = [newLayers[index - 1], newLayers[index]];
-      return { layers: newLayers };
-    }
-    return state;
-  }),
+    });
+  },
 
-  addSticker: (src) => set((state) => {
-    const newSticker = { id: Date.now(), src, x: 150, y: 150, width: 100, height: 100 };
-    return { stickers: [...state.stickers, newSticker], activeStickerId: newSticker.id, activeLayerId: null };
-  }),
+  addSticker: (src) => {
+    get().saveHistory();
+    set((state) => {
+      const newSticker = { id: Date.now(), src, x: 150, y: 150, width: 100, height: 100 };
+      return { stickers: [...state.stickers, newSticker], activeStickerId: newSticker.id, activeLayerId: null };
+    });
+  },
+  
   updateSticker: (id, updates) => set((state) => ({
     stickers: state.stickers.map(s => s.id === id ? { ...s, ...updates } : s)
   })),
-  deleteSticker: (id) => set((state) => ({
-    stickers: state.stickers.filter(s => s.id !== id),
-    activeStickerId: state.activeStickerId === id ? null : state.activeStickerId
-  })),
+  
+  deleteSticker: (id) => {
+    get().saveHistory();
+    set((state) => ({
+      stickers: state.stickers.filter(s => s.id !== id),
+      activeStickerId: state.activeStickerId === id ? null : state.activeStickerId
+    }));
+  },
 
-  reorderSticker: (id, direction) => set((state) => {
-    const index = state.stickers.findIndex(s => s.id === id);
-    if (index < 0) return state;
-    const newStickers = [...state.stickers];
-    if (direction === 'up' && index < newStickers.length - 1) {
-      [newStickers[index], newStickers[index + 1]] = [newStickers[index + 1], newStickers[index]];
+  reorderSticker: (id, direction) => {
+    get().saveHistory();
+    set((state) => {
+      const index = state.stickers.findIndex(s => s.id === id);
+      if (index < 0) return state;
+      const newStickers = [...state.stickers];
+      if (direction === 'up' && index < newStickers.length - 1) [newStickers[index], newStickers[index + 1]] = [newStickers[index + 1], newStickers[index]];
+      if (direction === 'down' && index > 0) [newStickers[index], newStickers[index - 1]] = [newStickers[index - 1], newStickers[index]];
       return { stickers: newStickers };
-    }
-    if (direction === 'down' && index > 0) {
-      [newStickers[index], newStickers[index - 1]] = [newStickers[index - 1], newStickers[index]];
-      return { stickers: newStickers };
-    }
-    return state;
-  }),
+    });
+  },
 
   setActiveLayer: (id) => set({ activeLayerId: id, activeStickerId: null }),
   setActiveSticker: (id) => set({ activeStickerId: id, activeLayerId: null }),
