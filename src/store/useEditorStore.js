@@ -14,7 +14,6 @@ const useEditorStore = create((set, get) => ({
   templates: [],
   errorMessage: '',
 
-  // 🌟 히스토리 상태 (Undo / Redo 용)
   past: [],
   future: [],
 
@@ -24,7 +23,7 @@ const useEditorStore = create((set, get) => ({
       past: [...state.past, { 
         layers: JSON.parse(JSON.stringify(layers)), 
         stickers: JSON.parse(JSON.stringify(stickers)) 
-      }].slice(-30), // 최근 30개까지만 저장하여 메모리 최적화
+      }].slice(-30),
       future: []
     }));
   },
