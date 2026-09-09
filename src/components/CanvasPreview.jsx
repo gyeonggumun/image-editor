@@ -6,13 +6,28 @@ function CanvasPreview() {
   const { 
     image, ratio, layers, activeLayerId, setActiveLayer, updateLayer,
     stickers, activeStickerId, setActiveSticker, updateSticker,
-    guidelines, setGuidelines
+    guidelines, setGuidelines, saveHistory, undo, redo 
   } = useEditorStore();
   
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const stickerCache = useRef({});
   const [, setRenderTrigger] = useState(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   const getCanvasDimensions = () => {
     const baseWidth = 600;
@@ -99,7 +114,6 @@ function CanvasPreview() {
         finalLines.push(currentLine); 
       });
 
-      // 🌟 배열 길이만큼 그라데이션 정지점을 분할
       finalLines.forEach((line, index) => {
         const currentY = layer.y + (index * (layer.size * 1.2));
         const gradientColors = layer.gradientColors || [layer.color, layer.color2 || '#a1a1aa'];
@@ -107,12 +121,8 @@ function CanvasPreview() {
         if (layer.useGradient && gradientColors.length >= 2) {
           const metrics = ctx.measureText(line);
           const gradient = ctx.createLinearGradient(layer.x, currentY, layer.x + metrics.width, currentY);
-          
           const step = 1 / (gradientColors.length - 1);
-          gradientColors.forEach((color, i) => {
-            gradient.addColorStop(i * step, color);
-          });
-          
+          gradientColors.forEach((color, i) => gradient.addColorStop(i * step, color));
           ctx.fillStyle = gradient;
         } else {
           ctx.fillStyle = layer.color;
@@ -142,7 +152,6 @@ function CanvasPreview() {
       }
       ctx.setLineDash([]); 
     }
-
   }, [image, ratio, layers, activeLayerId, stickers, activeStickerId, guidelines, isDragging]);
 
   const getMousePos = (e) => {
@@ -155,29 +164,28 @@ function CanvasPreview() {
 
   const handleMouseDown = (e) => {
     const pos = getMousePos(e);
-
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const approxHeight = layer.text.split('\n').length * layer.size * 1.2;
       const hitBoxWidth = Math.max(100, layer.size * 3); 
       if (pos.x >= layer.x - 10 && pos.x <= layer.x + hitBoxWidth && pos.y >= layer.y - 10 && pos.y <= layer.y + approxHeight) {
+        saveHistory();
         setActiveLayer(layer.id);
         setIsDragging(true);
         setDragOffset({ x: pos.x - layer.x, y: pos.y - layer.y });
         return;
       }
     }
-
     for (let i = stickers.length - 1; i >= 0; i--) {
       const s = stickers[i];
       if (pos.x >= s.x && pos.x <= s.x + s.width && pos.y >= s.y && pos.y <= s.y + s.height) {
+        saveHistory();
         setActiveSticker(s.id);
         setIsDragging(true);
         setDragOffset({ x: pos.x - s.x, y: pos.y - s.y });
         return;
       }
     }
-
     setActiveLayer(null);
     setActiveSticker(null);
   };
@@ -193,20 +201,11 @@ function CanvasPreview() {
     let guideY = null;
     const SNAP_THRESHOLD = 15;
 
-    if (Math.abs(targetX - width / 2) < SNAP_THRESHOLD) {
-      targetX = width / 2;
-      guideX = width / 2;
-    }
-    if (Math.abs(targetY - height / 2) < SNAP_THRESHOLD) {
-      targetY = height / 2;
-      guideY = height / 2;
-    }
+    if (Math.abs(targetX - width / 2) < SNAP_THRESHOLD) { targetX = width / 2; guideX = width / 2; }
+    if (Math.abs(targetY - height / 2) < SNAP_THRESHOLD) { targetY = height / 2; guideY = height / 2; }
 
-    if (activeLayerId) {
-      updateLayer(activeLayerId, { x: targetX, y: targetY });
-    } else if (activeStickerId) {
-      updateSticker(activeStickerId, { x: targetX, y: targetY });
-    }
+    if (activeLayerId) updateLayer(activeLayerId, { x: targetX, y: targetY });
+    else if (activeStickerId) updateSticker(activeStickerId, { x: targetX, y: targetY });
     
     setGuidelines({ x: guideX, y: guideY });
   };
