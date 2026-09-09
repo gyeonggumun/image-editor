@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import useEditorStore from '../store/useEditorStore';
 
-// 간편 사용자 식별을 위한 UUID 생성 및 호출
 const getUserId = () => {
   let id = localStorage.getItem('editor_user_id');
   if (!id) {
@@ -20,7 +19,6 @@ function TemplateManager() {
   const categories = ['기본', 'SNS', '전단지', '약도'];
   const userId = getUserId();
 
-  // 🌟 클라우드에서 템플릿 불러오기
   useEffect(() => {
     const fetchTemplates = async () => {
       setIsLoading(true);
@@ -37,9 +35,8 @@ function TemplateManager() {
       }
     };
     fetchTemplates();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); 
 
-  // 🌟 클라우드에 템플릿 저장(동기화)하는 헬퍼 함수
   const syncToCloud = async (updatedTemplates) => {
     try {
       await fetch(`/api/templates?userId=${userId}`, {
@@ -127,17 +124,10 @@ function TemplateManager() {
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <select 
-            className="control-input" 
-            style={{ padding: '8px', width: '90px' }} 
-            value={saveTag} 
-            onChange={(e) => setSaveTag(e.target.value)}
-          >
+          <select className="control-input" style={{ padding: '8px', width: '90px' }} value={saveTag} onChange={(e) => setSaveTag(e.target.value)}>
             {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
-          <button className="secondary-btn" style={{ flex: 1, backgroundColor: 'var(--accent)', color: 'var(--accent-text)', borderColor: 'var(--accent)' }} onClick={saveTemplate}>
-            클라우드에 저장
-          </button>
+          <button className="secondary-btn" style={{ flex: 1, backgroundColor: 'var(--accent)', color: 'var(--accent-text)', borderColor: 'var(--accent)' }} onClick={saveTemplate}>클라우드에 저장</button>
         </div>
         
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -155,11 +145,7 @@ function TemplateManager() {
             key={tag}
             onClick={() => setFilterTag(tag)}
             style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: '500',
-              borderRadius: '20px',
-              cursor: 'pointer',
+              padding: '6px 12px', fontSize: '12px', fontWeight: '500', borderRadius: '20px', cursor: 'pointer',
               border: `1px solid ${filterTag === tag ? 'var(--text-primary)' : 'var(--border-base)'}`,
               backgroundColor: filterTag === tag ? 'var(--bg-surface-hover)' : 'var(--bg-surface)',
               color: filterTag === tag ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -184,9 +170,7 @@ function TemplateManager() {
             </div>
           </li>
         )) : (
-          <li style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: '13px', border: '1px dashed var(--border-base)', borderRadius: 'var(--radius-md)' }}>
-            저장된 템플릿이 없습니다.
-          </li>
+          <li style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: '13px', border: '1px dashed var(--border-base)', borderRadius: 'var(--radius-md)' }}>저장된 템플릿이 없습니다.</li>
         )}
       </ul>
     </>
