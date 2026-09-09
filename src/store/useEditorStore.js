@@ -7,13 +7,15 @@ const useEditorStore = create((set, get) => ({
     id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, 
     color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa']
   }],
-  activeLayerId: null,
   stickers: [], 
-  activeStickerId: null,
+  
+  // 🌟 다중 선택을 위한 배열 상태
+  selectedLayerIds: [],
+  selectedStickerIds: [],
+  
   guidelines: { x: null, y: null },
   templates: [],
   errorMessage: '',
-
   past: [],
   future: [],
 
@@ -37,7 +39,7 @@ const useEditorStore = create((set, get) => ({
       future: [{ layers: JSON.parse(JSON.stringify(layers)), stickers: JSON.parse(JSON.stringify(stickers)) }, ...state.future],
       layers: previous.layers,
       stickers: previous.stickers,
-      activeLayerId: null, activeStickerId: null
+      selectedLayerIds: [], selectedStickerIds: []
     }));
   },
 
@@ -50,18 +52,43 @@ const useEditorStore = create((set, get) => ({
       future: state.future.slice(1),
       layers: next.layers,
       stickers: next.stickers,
-      activeLayerId: null, activeStickerId: null
+      selectedLayerIds: [], selectedStickerIds: []
     }));
   },
 
   setImage: (img) => set({ image: img }),
   setRatio: (ratio) => set({ ratio }),
   
+  // 🌟 다중 선택 관리 액션
+  selectItem: (id, type, isMulti) => set((state) => {
+    if (isMulti) {
+      if (type === 'layer') {
+        const isSelected = state.selectedLayerIds.includes(id);
+        return { selectedLayerIds: isSelected ? state.selectedLayerIds.filter(i => i !== id) : [...state.selectedLayerIds, id] };
+      } else {
+        const isSelected = state.selectedStickerIds.includes(id);
+        return { selectedStickerIds: isSelected ? state.selectedStickerIds.filter(i => i !== id) : [...state.selectedStickerIds, id] };
+      }
+    }
+    return {
+      selectedLayerIds: type === 'layer' ? [id] : [],
+      selectedStickerIds: type === 'sticker' ? [id] : []
+    };
+  }),
+
+  clearSelection: () => set({ selectedLayerIds: [], selectedStickerIds: [] }),
+
+  // 🌟 선택된 모든 요소들을 한 번에 이동
+  moveSelectedItems: (dx, dy) => set((state) => ({
+    layers: state.layers.map(l => state.selectedLayerIds.includes(l.id) ? { ...l, x: l.x + dx, y: l.y + dy } : l),
+    stickers: state.stickers.map(s => state.selectedStickerIds.includes(s.id) ? { ...s, x: s.x + dx, y: s.y + dy } : s)
+  })),
+
   addLayer: () => {
     get().saveHistory();
     set((state) => {
       const newLayer = { id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 40, color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa'] };
-      return { layers: [...state.layers, newLayer], activeLayerId: newLayer.id, activeStickerId: null };
+      return { layers: [...state.layers, newLayer], selectedLayerIds: [newLayer.id], selectedStickerIds: [] };
     });
   },
   
@@ -73,7 +100,7 @@ const useEditorStore = create((set, get) => ({
     get().saveHistory();
     set((state) => ({
       layers: state.layers.filter(layer => layer.id !== id),
-      activeLayerId: state.activeLayerId === id ? null : state.activeLayerId
+      selectedLayerIds: state.selectedLayerIds.filter(selectedId => selectedId !== id)
     }));
   },
 
@@ -93,7 +120,7 @@ const useEditorStore = create((set, get) => ({
     get().saveHistory();
     set((state) => {
       const newSticker = { id: Date.now(), src, x: 150, y: 150, width: 100, height: 100 };
-      return { stickers: [...state.stickers, newSticker], activeStickerId: newSticker.id, activeLayerId: null };
+      return { stickers: [...state.stickers, newSticker], selectedStickerIds: [newSticker.id], selectedLayerIds: [] };
     });
   },
   
@@ -105,7 +132,7 @@ const useEditorStore = create((set, get) => ({
     get().saveHistory();
     set((state) => ({
       stickers: state.stickers.filter(s => s.id !== id),
-      activeStickerId: state.activeStickerId === id ? null : state.activeStickerId
+      selectedStickerIds: state.selectedStickerIds.filter(selectedId => selectedId !== id)
     }));
   },
 
@@ -121,8 +148,6 @@ const useEditorStore = create((set, get) => ({
     });
   },
 
-  setActiveLayer: (id) => set({ activeLayerId: id, activeStickerId: null }),
-  setActiveSticker: (id) => set({ activeStickerId: id, activeLayerId: null }),
   setGuidelines: (guidelines) => set({ guidelines }),
   setLayers: (layers) => set({ layers }), 
   setStickers: (stickers) => set({ stickers }),
