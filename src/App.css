@@ -1,5 +1,4 @@
 :root {
-  /* 절제된 모노톤 색상 시스템 */
   --bg-canvas: #f4f4f5;
   --bg-surface: #ffffff;
   --bg-surface-hover: #fafafa;
@@ -9,29 +8,17 @@
   --text-secondary: #52525b;
   --text-tertiary: #a1a1aa;
   
-  /* 프라이머리 액션 색상 (다크 그레이) */
   --accent: #27272a;
   --accent-hover: #000000;
   --accent-text: #ffffff;
 
-  /* 일관된 Spacing System (4px 배수 기반) */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 24px;
-  --sp-6: 32px;
-  --sp-8: 48px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-8: 48px;
 
-  /* 명확한 Typography Hierarchy */
-  --font-xs: 0.75rem;   /* 12px */
-  --font-sm: 0.875rem;  /* 14px */
-  --font-base: 1rem;    /* 16px */
-  --font-lg: 1.125rem;  /* 18px */
+  --font-xs: 0.75rem; --font-sm: 0.875rem; 
+  --font-base: 1rem; --font-lg: 1.125rem;
 
-  /* 과하지 않은 Border와 Shadow */
-  --radius-sm: 6px;
-  --radius-md: 8px;
+  --radius-sm: 6px; --radius-md: 8px;
   --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -46,7 +33,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 미니멀한 레이아웃 */
 .editor-layout {
   display: flex;
   flex-wrap: wrap;
@@ -57,7 +43,6 @@ body {
   align-items: flex-start;
 }
 
-/* 정돈된 카드 및 컴포넌트 */
 .control-panel {
   flex: 1;
   min-width: 320px;
@@ -76,7 +61,6 @@ body {
   min-width: 400px;
 }
 
-/* 높은 가독성을 위한 텍스트 스타일 */
 .panel-title {
   margin: 0 0 var(--sp-5) 0;
   font-size: var(--font-lg);
@@ -105,7 +89,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* 입력 필드 */
 .control-input {
   padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--border-base);
@@ -129,7 +112,6 @@ textarea.control-input {
   line-height: 1.5;
 }
 
-/* 커스텀 Range Slider */
 input[type="range"] {
   accent-color: var(--text-secondary);
   height: 4px;
@@ -156,7 +138,6 @@ input[type="color"].control-input {
   cursor: pointer;
 }
 
-/* 세련된 Hover Interaction을 적용한 버튼 */
 .btn-group {
   display: flex;
   gap: var(--sp-2);
@@ -212,7 +193,6 @@ input[type="color"].control-input {
   display: none;
 }
 
-/* 복잡함을 덜어낸 캔버스 배경 처리 */
 .canvas-container {
   background: var(--bg-canvas);
   padding: var(--sp-8);
@@ -230,7 +210,6 @@ canvas {
   box-shadow: var(--shadow-subtle);
 }
 
-/* 정돈된 리스트 아이템 */
 .template-list {
   list-style: none;
   padding: 0;
@@ -262,7 +241,6 @@ canvas {
   font-weight: 500;
 }
 
-/* 서브 액션 버튼 */
 .template-actions {
   display: flex;
   gap: var(--sp-1);
