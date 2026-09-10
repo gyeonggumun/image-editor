@@ -3,6 +3,10 @@ import { create } from 'zustand';
 const useEditorStore = create((set, get) => ({
   image: null,
   ratio: '1:1',
+  
+  // 🌟 이미지 필터 상태 추가
+  imageFilters: { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
+  
   layers: [{ 
     id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, 
     color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa']
@@ -21,47 +25,71 @@ const useEditorStore = create((set, get) => ({
   future: [],
 
   saveHistory: () => {
-    const { layers, stickers, shapes } = get();
+    const { layers, stickers, shapes, imageFilters } = get();
     set((state) => ({
       past: [...state.past, { 
         layers: JSON.parse(JSON.stringify(layers)), 
         stickers: JSON.parse(JSON.stringify(stickers)),
-        shapes: JSON.parse(JSON.stringify(shapes)) 
+        shapes: JSON.parse(JSON.stringify(shapes)),
+        imageFilters: { ...imageFilters } // 🌟 필터 상태 저장
       }].slice(-30),
       future: []
     }));
   },
 
   undo: () => {
-    const { past, layers, stickers, shapes } = get();
+    const { past, layers, stickers, shapes, imageFilters } = get();
     if (past.length === 0) return;
     const previous = past[past.length - 1];
     set((state) => ({
       past: state.past.slice(0, -1),
-      future: [{ layers: JSON.parse(JSON.stringify(layers)), stickers: JSON.parse(JSON.stringify(stickers)), shapes: JSON.parse(JSON.stringify(shapes)) }, ...state.future],
+      future: [{ 
+        layers: JSON.parse(JSON.stringify(layers)), 
+        stickers: JSON.parse(JSON.stringify(stickers)), 
+        shapes: JSON.parse(JSON.stringify(shapes)),
+        imageFilters: { ...imageFilters }
+      }, ...state.future],
       layers: previous.layers,
       stickers: previous.stickers,
       shapes: previous.shapes,
+      imageFilters: previous.imageFilters || { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
       selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: []
     }));
   },
 
   redo: () => {
-    const { future, layers, stickers, shapes } = get();
+    const { future, layers, stickers, shapes, imageFilters } = get();
     if (future.length === 0) return;
     const next = future[0];
     set((state) => ({
-      past: [...state.past, { layers: JSON.parse(JSON.stringify(layers)), stickers: JSON.parse(JSON.stringify(stickers)), shapes: JSON.parse(JSON.stringify(shapes)) }],
+      past: [...state.past, { 
+        layers: JSON.parse(JSON.stringify(layers)), 
+        stickers: JSON.parse(JSON.stringify(stickers)), 
+        shapes: JSON.parse(JSON.stringify(shapes)),
+        imageFilters: { ...imageFilters }
+      }],
       future: state.future.slice(1),
       layers: next.layers,
       stickers: next.stickers,
       shapes: next.shapes,
+      imageFilters: next.imageFilters || { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
       selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: []
     }));
   },
 
-  setImage: (img) => set({ image: img }),
+  setImage: (img) => {
+    get().saveHistory();
+    set({ image: img, imageFilters: { brightness: 100, contrast: 100, grayscale: 0, blur: 0 } });
+  },
+  
   setRatio: (ratio) => set({ ratio }),
+  
+  // 🌟 이미지 필터 업데이트 액션
+  setImageFilter: (key, value) => {
+    set((state) => ({
+      imageFilters: { ...state.imageFilters, [key]: value }
+    }));
+  },
   
   selectItem: (id, type, isMulti) => set((state) => {
     if (isMulti) {
