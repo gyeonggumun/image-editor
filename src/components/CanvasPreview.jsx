@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import useEditorStore from '../store/useEditorStore';
+import { jsPDF } from 'jspdf'; // 🌟 PDF 생성을 위한 라이브러리 임포트
 
 function CanvasPreview() {
   const containerRef = useRef(null);
@@ -253,7 +254,6 @@ function CanvasPreview() {
     let hitId = null;
     let hitType = null;
 
-    // 1. 텍스트 클릭 확인
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const approxHeight = layer.text.split('\n').length * layer.size * 1.2;
@@ -265,7 +265,6 @@ function CanvasPreview() {
       }
     }
 
-    // 2. 스티커 클릭 확인
     if (!hitId) {
       for (let i = stickers.length - 1; i >= 0; i--) {
         const s = stickers[i];
@@ -277,7 +276,6 @@ function CanvasPreview() {
       }
     }
 
-    // 3. 도형 클릭 확인
     if (!hitId) {
       for (let i = shapes.length - 1; i >= 0; i--) {
         const s = shapes[i];
@@ -293,14 +291,10 @@ function CanvasPreview() {
 
     if (hitId) {
       saveHistory();
-      
       const isAlreadySelected = (hitType === 'layer' && selectedLayerIds.includes(hitId)) || 
                                 (hitType === 'sticker' && selectedStickerIds.includes(hitId)) ||
                                 (hitType === 'shape' && selectedShapeIds.includes(hitId));
-      
-      if (!isAlreadySelected) {
-        selectItem(hitId, hitType, e.shiftKey);
-      }
+      if (!isAlreadySelected) selectItem(hitId, hitType, e.shiftKey);
       
       setIsDragging(true);
       setLastPos(pos);
@@ -321,7 +315,6 @@ function CanvasPreview() {
     const { width, height } = getCanvasDimensions();
     const SNAP_THRESHOLD = 15;
     
-    // 단일 선택일 경우 중앙 스냅 적용
     const totalSelected = selectedLayerIds.length + selectedStickerIds.length + selectedShapeIds.length;
     let guideX = null;
     let guideY = null;
@@ -333,7 +326,7 @@ function CanvasPreview() {
       let targetY = pos.y;
       
       if (Math.abs(targetX - width / 2) < SNAP_THRESHOLD) {
-        dx = (width / 2) - lastPos.x; // 스냅 위치로 보정
+        dx = (width / 2) - lastPos.x;
         guideX = width / 2;
       }
       if (Math.abs(targetY - height / 2) < SNAP_THRESHOLD) {
@@ -346,7 +339,7 @@ function CanvasPreview() {
     moveSelectedItems(dx, dy);
     
     if (!guideX && !guideY) {
-      setLastPos(pos); // 스냅되지 않았을 때만 위치 갱신
+      setLastPos(pos);
     } else {
       setLastPos({ x: lastPos.x + dx, y: lastPos.y + dy });
     }
@@ -358,11 +351,30 @@ function CanvasPreview() {
     setGuidelines({ x: null, y: null });
   };
 
+  // 🌟 인쇄용 PDF 출력 함수
+  const handleExportPDF = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    // 현재 캔버스 비율에 맞추어 방향(가로/세로) 설정
+    const isLandscape = canvas.width > canvas.height;
+    const pdf = new jsPDF({
+      orientation: isLandscape ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [canvas.width, canvas.height]
+    });
+    
+    // 캔버스 데이터를 최고 화질(1.0) 이미지로 추출하여 PDF에 삽입
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.save(`design-export-${Date.now()}.pdf`);
+  };
+
   return (
     <div className="preview-panel" style={{ position: 'relative' }}>
       
       {/* 줌 컨트롤 UI */}
-      <div style={{ position: 'absolute', bottom: '80px', right: '20px', zIndex: 10, display: 'flex', gap: '4px', background: 'var(--bg-surface)', padding: '4px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border-base)' }}>
+      <div style={{ position: 'absolute', bottom: '110px', right: '20px', zIndex: 10, display: 'flex', gap: '4px', background: 'var(--bg-surface)', padding: '4px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border-base)' }}>
         <button className="action-sm-btn" onClick={() => setZoom(prev => Math.max(0.2, prev - 0.1))} title="축소">-</button>
         <span style={{ fontSize: '12px', padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: '500' }}>
           {Math.round(zoom * 100)}%
@@ -395,12 +407,21 @@ function CanvasPreview() {
         </div>
       </div>
       
-      <button className="action-btn" onClick={() => {
-        const link = document.createElement('a');
-        link.download = `result-${Date.now()}.png`;
-        link.href = canvasRef.current.toDataURL('image/png');
-        link.click();
-      }}>이미지 내려받기</button>
+      {/* 🌟 다운로드 액션 그룹 */}
+      <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+        <button className="secondary-btn" style={{ flex: 1, padding: '12px', fontWeight: 'bold' }} onClick={() => {
+          const link = document.createElement('a');
+          link.download = `result-${Date.now()}.png`;
+          link.href = canvasRef.current.toDataURL('image/png');
+          link.click();
+        }}>
+          웹용 이미지(PNG) 다운로드
+        </button>
+        
+        <button className="action-btn" style={{ flex: 1, margin: 0, padding: '12px', backgroundColor: '#dc2626', borderColor: '#dc2626', fontWeight: 'bold' }} onClick={handleExportPDF}>
+          인쇄용 PDF 다운로드
+        </button>
+      </div>
     </div>
   );
 }
