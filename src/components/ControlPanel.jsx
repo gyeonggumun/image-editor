@@ -2,7 +2,8 @@ import useEditorStore from '../store/useEditorStore';
 
 function ControlPanel() {
   const { 
-    ratio, setRatio, setImage, errorMessage, setErrorMessage,
+    ratio, setRatio, image, setImage, errorMessage, setErrorMessage,
+    imageFilters, setImageFilter, saveHistory, // 🌟 필터 상태 가져오기
     layers, addLayer, updateLayer, deleteLayer, reorderLayer,
     stickers, addSticker, updateSticker, deleteSticker, reorderSticker,
     shapes, addShape, updateShape, deleteShape, reorderShape,
@@ -40,19 +41,12 @@ function ControlPanel() {
   
   const currentGradientColors = activeLayer?.gradientColors || [activeLayer?.color, activeLayer?.color2 || '#a1a1aa'];
 
-  // 🌟 누락되었던 그라데이션 핸들러 함수들
   const addGradientColor = () => {
-    if (currentGradientColors.length < 5) {
-      updateLayer(activeLayer.id, { gradientColors: [...currentGradientColors, '#ffffff'] });
-    }
+    if (currentGradientColors.length < 5) updateLayer(activeLayer.id, { gradientColors: [...currentGradientColors, '#ffffff'] });
   };
-
   const removeGradientColor = () => {
-    if (currentGradientColors.length > 2) {
-      updateLayer(activeLayer.id, { gradientColors: currentGradientColors.slice(0, -1) });
-    }
+    if (currentGradientColors.length > 2) updateLayer(activeLayer.id, { gradientColors: currentGradientColors.slice(0, -1) });
   };
-
   const handleGradientChange = (index, newColor) => {
     const updated = [...currentGradientColors];
     updated[index] = newColor;
@@ -79,6 +73,39 @@ function ControlPanel() {
         <label>배경 이미지</label>
         <label className="file-upload-label">파일 선택<input type="file" className="file-upload-input" accept="image/png, image/jpeg" onChange={handleImageUpload} /></label>
       </div>
+
+      {/* 🌟 배경 이미지 필터 조절 영역 */}
+      {image && (
+        <div className="control-group" style={{ padding: '12px', background: 'var(--bg-canvas)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-sm)' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '12px' }}>배경 이미지 필터</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <label style={{ fontSize: '12px', width: '50px', margin: 0 }}>밝기</label>
+              <input type="range" min="0" max="200" value={imageFilters.brightness} 
+                onMouseDown={() => saveHistory()} 
+                onChange={(e) => setImageFilter('brightness', Number(e.target.value))} style={{ flex: 1, margin: 0 }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <label style={{ fontSize: '12px', width: '50px', margin: 0 }}>대비</label>
+              <input type="range" min="0" max="200" value={imageFilters.contrast} 
+                onMouseDown={() => saveHistory()} 
+                onChange={(e) => setImageFilter('contrast', Number(e.target.value))} style={{ flex: 1, margin: 0 }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <label style={{ fontSize: '12px', width: '50px', margin: 0 }}>흑백</label>
+              <input type="range" min="0" max="100" value={imageFilters.grayscale} 
+                onMouseDown={() => saveHistory()} 
+                onChange={(e) => setImageFilter('grayscale', Number(e.target.value))} style={{ flex: 1, margin: 0 }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <label style={{ fontSize: '12px', width: '50px', margin: 0 }}>블러</label>
+              <input type="range" min="0" max="20" value={imageFilters.blur} 
+                onMouseDown={() => saveHistory()} 
+                onChange={(e) => setImageFilter('blur', Number(e.target.value))} style={{ flex: 1, margin: 0 }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="control-group">
         <label>화면 비율</label>
