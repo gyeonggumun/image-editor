@@ -5,7 +5,7 @@ function ControlPanel() {
     ratio, setRatio, setImage, errorMessage, setErrorMessage,
     layers, addLayer, updateLayer, deleteLayer, reorderLayer,
     stickers, addSticker, updateSticker, deleteSticker, reorderSticker,
-    shapes, addShape, updateShape, deleteShape, reorderShape, // 🌟 도형 상태
+    shapes, addShape, updateShape, deleteShape, reorderShape,
     past, future, undo, redo,
     selectedLayerIds, selectedStickerIds, selectedShapeIds, selectItem 
   } = useEditorStore();
@@ -36,17 +36,40 @@ function ControlPanel() {
   const isMultiSelected = selectedLayerIds.length + selectedStickerIds.length + selectedShapeIds.length > 1;
   const activeLayer = !isMultiSelected && selectedLayerIds.length === 1 ? layers.find(l => l.id === selectedLayerIds[0]) : null;
   const activeSticker = !isMultiSelected && selectedStickerIds.length === 1 ? stickers.find(s => s.id === selectedStickerIds[0]) : null;
-  const activeShape = !isMultiSelected && selectedShapeIds.length === 1 ? shapes.find(s => s.id === selectedShapeIds[0]) : null; // 🌟 단일 선택된 도형
+  const activeShape = !isMultiSelected && selectedShapeIds.length === 1 ? shapes.find(s => s.id === selectedShapeIds[0]) : null;
   
   const currentGradientColors = activeLayer?.gradientColors || [activeLayer?.color, activeLayer?.color2 || '#a1a1aa'];
+
+  // 🌟 누락되었던 그라데이션 핸들러 함수들
+  const addGradientColor = () => {
+    if (currentGradientColors.length < 5) {
+      updateLayer(activeLayer.id, { gradientColors: [...currentGradientColors, '#ffffff'] });
+    }
+  };
+
+  const removeGradientColor = () => {
+    if (currentGradientColors.length > 2) {
+      updateLayer(activeLayer.id, { gradientColors: currentGradientColors.slice(0, -1) });
+    }
+  };
+
+  const handleGradientChange = (index, newColor) => {
+    const updated = [...currentGradientColors];
+    updated[index] = newColor;
+    updateLayer(activeLayer.id, { gradientColors: updated });
+  };
 
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-base)', paddingBottom: '12px', marginBottom: '20px' }}>
         <h2 className="panel-title" style={{ margin: 0, borderBottom: 'none', paddingBottom: 0 }}>스튜디오 설정</h2>
         <div style={{ display: 'flex', gap: '4px' }}>
-          <button className="action-sm-btn" onClick={undo} disabled={past.length === 0} title="실행 취소">↩️</button>
-          <button className="action-sm-btn" onClick={redo} disabled={future.length === 0} title="다시 실행">↪️</button>
+          <button className="action-sm-btn" onClick={undo} disabled={past.length === 0} title="실행 취소">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 10h10a5 5 0 0 1 5 5v2a5 5 0 0 1-5 5H9" strokeLinecap="round"/><path d="M3 10l6-6M3 10l6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+          <button className="action-sm-btn" onClick={redo} disabled={future.length === 0} title="다시 실행">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10H11a5 5 0 0 0-5 5v2a5 5 0 0 0 5 5h4" strokeLinecap="round"/><path d="M21 10l-6-6M21 10l-6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
         </div>
       </div>
       
@@ -68,7 +91,7 @@ function ControlPanel() {
 
       <hr style={{ margin: '20px 0', borderColor: 'var(--border-base)', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
 
-      {/* 🌟 도형 추가 패널 */}
+      {/* 도형 추가 패널 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>기본 도형</h3>
         <div style={{ display: 'flex', gap: '4px' }}>
@@ -89,7 +112,7 @@ function ControlPanel() {
         ))}
       </ul>
 
-      {/* 텍스트 및 스티커 패널 */}
+      {/* 텍스트 패널 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>텍스트 레이어</h3>
         <button className="action-sm-btn" onClick={addLayer}>추가</button>
@@ -106,6 +129,7 @@ function ControlPanel() {
         ))}
       </ul>
 
+      {/* 스티커 패널 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>에셋 (로고/아이콘)</h3>
         <label className="action-sm-btn" style={{ cursor: 'pointer', margin: 0 }}>
@@ -139,7 +163,6 @@ function ControlPanel() {
                 </div>
               </div>
 
-              {/* 🌟 도형 속성 편집기 */}
               {activeShape && (
                 <>
                   <div style={{ display: 'flex', gap: '12px' }}>
@@ -167,7 +190,6 @@ function ControlPanel() {
                 </>
               )}
 
-              {/* 기존 텍스트 및 스티커 속성 편집 UI 유지... (이전 코드와 동일하므로 지면상 생략 가능하지만 완전성을 위해 유지) */}
               {activeLayer && (
                 <>
                   <div className="control-group">
@@ -176,14 +198,44 @@ function ControlPanel() {
                   </div>
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <div className="control-group" style={{ flex: 1 }}>
+                      <label>글꼴</label>
+                      <select className="control-input" value={activeLayer.fontFamily || 'sans-serif'} onChange={(e) => updateLayer(activeLayer.id, { fontFamily: e.target.value })}>
+                        <option value="sans-serif">기본 (고딕)</option>
+                        <option value="serif">명조</option>
+                        <option value="monospace">고정폭</option>
+                      </select>
+                    </div>
+                    <div className="control-group" style={{ flex: 1 }}>
                       <label>크기: {activeLayer.size}px</label>
                       <input type="range" min="20" max="120" value={activeLayer.size} onChange={(e) => updateLayer(activeLayer.id, { size: Number(e.target.value) })} />
                     </div>
                   </div>
-                  <div className="control-group" style={{ width: '60px', marginTop: '8px' }}>
-                    <label>단일 색상</label>
-                    <input type="color" className="control-input" style={{ padding: '0', height: '32px', width: '100%', border: 'none' }} value={activeLayer.color} onChange={(e) => updateLayer(activeLayer.id, { color: e.target.value })} />
+                  <div className="control-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                    <input type="checkbox" id="gradient-toggle" checked={activeLayer.useGradient || false} onChange={(e) => updateLayer(activeLayer.id, { useGradient: e.target.checked })} style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
+                    <label htmlFor="gradient-toggle" style={{ cursor: 'pointer' }}>그라데이션 사용</label>
                   </div>
+
+                  {!activeLayer.useGradient ? (
+                    <div className="control-group" style={{ width: '60px', marginTop: '8px' }}>
+                      <label>단일 색상</label>
+                      <input type="color" className="control-input" style={{ padding: '0', height: '32px', width: '100%', border: 'none' }} value={activeLayer.color} onChange={(e) => updateLayer(activeLayer.id, { color: e.target.value })} />
+                    </div>
+                  ) : (
+                    <div className="control-group" style={{ marginTop: '8px', padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <label style={{ margin: 0 }}>색상 분할 ({currentGradientColors.length}/5)</label>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button className="action-sm-btn" onClick={removeGradientColor} disabled={currentGradientColors.length <= 2}>-</button>
+                          <button className="action-sm-btn" onClick={addGradientColor} disabled={currentGradientColors.length >= 5}>+</button>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {currentGradientColors.map((color, index) => (
+                          <input key={index} type="color" className="control-input" style={{ padding: '0', height: '32px', width: '40px', border: 'none' }} value={color} onChange={(e) => handleGradientChange(index, e.target.value)} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 

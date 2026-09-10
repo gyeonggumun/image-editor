@@ -8,11 +8,11 @@ const useEditorStore = create((set, get) => ({
     color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa']
   }],
   stickers: [], 
-  shapes: [], // 🌟 도형 상태 추가
+  shapes: [], 
   
   selectedLayerIds: [],
   selectedStickerIds: [],
-  selectedShapeIds: [], // 🌟 도형 선택 상태
+  selectedShapeIds: [], 
   
   guidelines: { x: null, y: null },
   templates: [],
@@ -26,7 +26,7 @@ const useEditorStore = create((set, get) => ({
       past: [...state.past, { 
         layers: JSON.parse(JSON.stringify(layers)), 
         stickers: JSON.parse(JSON.stringify(stickers)),
-        shapes: JSON.parse(JSON.stringify(shapes)) // 🌟 도형 히스토리 저장
+        shapes: JSON.parse(JSON.stringify(shapes)) 
       }].slice(-30),
       future: []
     }));
@@ -91,7 +91,6 @@ const useEditorStore = create((set, get) => ({
     shapes: state.shapes.map(s => state.selectedShapeIds.includes(s.id) ? { ...s, x: s.x + dx, y: s.y + dy } : s)
   })),
 
-  // 🌟 도형 추가/수정/삭제 액션
   addShape: (type) => {
     get().saveHistory();
     set((state) => {
@@ -104,9 +103,11 @@ const useEditorStore = create((set, get) => ({
       return { shapes: [...state.shapes, newShape], selectedShapeIds: [newShape.id], selectedLayerIds: [], selectedStickerIds: [] };
     });
   },
+  
   updateShape: (id, updates) => set((state) => ({
     shapes: state.shapes.map(shape => shape.id === id ? { ...shape, ...updates } : shape)
   })),
+  
   deleteShape: (id) => {
     get().saveHistory();
     set((state) => ({
@@ -114,6 +115,7 @@ const useEditorStore = create((set, get) => ({
       selectedShapeIds: state.selectedShapeIds.filter(selectedId => selectedId !== id)
     }));
   },
+  
   reorderShape: (id, direction) => {
     get().saveHistory();
     set((state) => {
@@ -126,7 +128,6 @@ const useEditorStore = create((set, get) => ({
     });
   },
 
-  // 텍스트 레이어 액션 (기존 동일)
   addLayer: () => {
     get().saveHistory();
     set((state) => {
@@ -134,11 +135,19 @@ const useEditorStore = create((set, get) => ({
       return { layers: [...state.layers, newLayer], selectedLayerIds: [newLayer.id], selectedStickerIds: [], selectedShapeIds: [] };
     });
   },
-  updateLayer: (id, updates) => set((state) => ({ layers: state.layers.map(layer => layer.id === id ? { ...layer, ...updates } : layer) })),
+  
+  updateLayer: (id, updates) => set((state) => ({ 
+    layers: state.layers.map(layer => layer.id === id ? { ...layer, ...updates } : layer) 
+  })),
+  
   deleteLayer: (id) => {
     get().saveHistory();
-    set((state) => ({ layers: state.layers.filter(layer => layer.id !== id), selectedLayerIds: state.selectedLayerIds.filter(selectedId => selectedId !== id) }));
+    set((state) => ({ 
+      layers: state.layers.filter(layer => layer.id !== id), 
+      selectedLayerIds: state.selectedLayerIds.filter(selectedId => selectedId !== id) 
+    }));
   },
+  
   reorderLayer: (id, direction) => {
     get().saveHistory();
     set((state) => {
@@ -151,7 +160,6 @@ const useEditorStore = create((set, get) => ({
     });
   },
 
-  // 스티커 액션 (기존 동일)
   addSticker: (src) => {
     get().saveHistory();
     set((state) => {
@@ -159,11 +167,19 @@ const useEditorStore = create((set, get) => ({
       return { stickers: [...state.stickers, newSticker], selectedStickerIds: [newSticker.id], selectedLayerIds: [], selectedShapeIds: [] };
     });
   },
-  updateSticker: (id, updates) => set((state) => ({ stickers: state.stickers.map(s => s.id === id ? { ...s, ...updates } : s) })),
+  
+  updateSticker: (id, updates) => set((state) => ({ 
+    stickers: state.stickers.map(s => s.id === id ? { ...s, ...updates } : s) 
+  })),
+  
   deleteSticker: (id) => {
     get().saveHistory();
-    set((state) => ({ stickers: state.stickers.filter(s => s.id !== id), selectedStickerIds: state.selectedStickerIds.filter(selectedId => selectedId !== id) }));
+    set((state) => ({ 
+      stickers: state.stickers.filter(s => s.id !== id), 
+      selectedStickerIds: state.selectedStickerIds.filter(selectedId => selectedId !== id) 
+    }));
   },
+  
   reorderSticker: (id, direction) => {
     get().saveHistory();
     set((state) => {
