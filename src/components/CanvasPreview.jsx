@@ -5,12 +5,13 @@ function CanvasPreview() {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const { 
-    image, ratio, layers, stickers, guidelines, setGuidelines, saveHistory, undo, redo,
-    selectedLayerIds, selectedStickerIds, selectItem, clearSelection, moveSelectedItems 
+    image, ratio, layers, stickers, shapes, guidelines, setGuidelines, saveHistory, undo, redo,
+    selectedLayerIds, selectedStickerIds, selectedShapeIds, selectItem, clearSelection, moveSelectedItems,
+    updateLayer, updateSticker, updateShape
   } = useEditorStore();
   
   const [isDragging, setIsDragging] = useState(false);
-  const [lastPos, setLastPos] = useState({ x: 0, y: 0 }); // 🌟 다중 선택 이동을 위한 이전 좌표
+  const [lastPos, setLastPos] = useState({ x: 0, y: 0 }); 
   
   const stickerCache = useRef({});
   const [, setRenderTrigger] = useState(0);
@@ -21,27 +22,32 @@ function CanvasPreview() {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
+  // 키보드 단축키 (Undo/Redo 및 Space 바 감지)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['TEXTAREA', 'INPUT'].includes(e.target.tagName)) return;
+      
       if (e.code === 'Space' && !isSpacePressed) {
         e.preventDefault();
         setIsSpacePressed(true);
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        if (e.shiftKey) redo(); else undo();
+        if (e.shiftKey) redo();
+        else undo();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         redo();
       }
     };
+    
     const handleKeyUp = (e) => {
       if (e.code === 'Space') {
         setIsSpacePressed(false);
         setIsPanning(false);
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     return () => {
@@ -50,6 +56,7 @@ function CanvasPreview() {
     };
   }, [undo, redo, isSpacePressed]);
 
+  // 마우스 휠 확대/축소 이벤트
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -70,6 +77,7 @@ function CanvasPreview() {
     return { width: baseWidth, height: baseWidth * (16 / 9) };
   };
 
+  // 캔버스 렌더링
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -95,6 +103,41 @@ function CanvasPreview() {
       ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
     }
 
+    // 1. 도형 렌더링
+    shapes.forEach(shape => {
+      ctx.globalAlpha = shape.opacity !== undefined ? shape.opacity : 1;
+      ctx.beginPath();
+      
+      if (shape.type === 'rect') {
+        ctx.rect(shape.x, shape.y, shape.width, shape.height);
+        ctx.fillStyle = shape.fill;
+        ctx.fill();
+      } else if (shape.type === 'circle') {
+        const radius = Math.min(shape.width, shape.height) / 2;
+        ctx.arc(shape.x + radius, shape.y + radius, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = shape.fill;
+        ctx.fill();
+      } else if (shape.type === 'line') {
+        ctx.moveTo(shape.x, shape.y);
+        ctx.lineTo(shape.x + shape.width, shape.y); 
+        ctx.strokeStyle = shape.fill;
+        ctx.lineWidth = shape.height; 
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+      
+      ctx.globalAlpha = 1;
+
+      if (selectedShapeIds.includes(shape.id)) {
+        ctx.strokeStyle = '#18181b';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(shape.x - 2, shape.y - (shape.type === 'line' ? shape.height/2 + 2 : 2), shape.width + 4, (shape.type === 'line' ? shape.height : shape.height) + 4);
+        ctx.setLineDash([]);
+      }
+    });
+
+    // 2. 스티커 렌더링
     stickers.forEach(sticker => {
       let img = stickerCache.current[sticker.id];
       if (!img) {
@@ -104,7 +147,6 @@ function CanvasPreview() {
         stickerCache.current[sticker.id] = img;
       } else {
         ctx.drawImage(img, sticker.x, sticker.y, sticker.width, sticker.height);
-        // 🌟 다중 선택된 스티커 외곽선 강조
         if (selectedStickerIds.includes(sticker.id)) {
           ctx.strokeStyle = '#18181b';
           ctx.lineWidth = 1;
@@ -115,11 +157,11 @@ function CanvasPreview() {
       }
     });
 
+    // 3. 텍스트 렌더링
     layers.forEach(layer => {
       ctx.font = `bold ${layer.size}px ${layer.fontFamily || 'sans-serif'}`;
       ctx.textBaseline = 'top';
       
-      // 🌟 다중 선택된 텍스트 강조
       if (selectedLayerIds.includes(layer.id)) {
         ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
         ctx.shadowBlur = 6;
@@ -163,12 +205,34 @@ function CanvasPreview() {
         } else {
           ctx.fillStyle = layer.color;
         }
+        
         ctx.fillText(line, layer.x, currentY);
       });
       ctx.shadowColor = 'transparent';
     });
 
-  }, [image, ratio, layers, stickers, selectedLayerIds, selectedStickerIds]);
+    // 4. 가이드라인(스냅) 렌더링
+    if (isDragging && guidelines) {
+      ctx.strokeStyle = '#ef4444'; 
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      
+      if (guidelines.x !== null) {
+        ctx.beginPath();
+        ctx.moveTo(guidelines.x, 0);
+        ctx.lineTo(guidelines.x, height);
+        ctx.stroke();
+      }
+      if (guidelines.y !== null) {
+        ctx.beginPath();
+        ctx.moveTo(0, guidelines.y);
+        ctx.lineTo(width, guidelines.y);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]); 
+    }
+
+  }, [image, ratio, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging]);
 
   const getMousePos = (e) => {
     const canvas = canvasRef.current;
@@ -189,7 +253,7 @@ function CanvasPreview() {
     let hitId = null;
     let hitType = null;
 
-    // 클릭된 텍스트 확인
+    // 1. 텍스트 클릭 확인
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const approxHeight = layer.text.split('\n').length * layer.size * 1.2;
@@ -201,7 +265,7 @@ function CanvasPreview() {
       }
     }
 
-    // 클릭된 스티커 확인
+    // 2. 스티커 클릭 확인
     if (!hitId) {
       for (let i = stickers.length - 1; i >= 0; i--) {
         const s = stickers[i];
@@ -213,18 +277,33 @@ function CanvasPreview() {
       }
     }
 
+    // 3. 도형 클릭 확인
+    if (!hitId) {
+      for (let i = shapes.length - 1; i >= 0; i--) {
+        const s = shapes[i];
+        const hitHeight = s.type === 'line' ? Math.max(s.height, 20) : s.height;
+        const hitY = s.type === 'line' ? s.y - hitHeight/2 : s.y;
+        if (pos.x >= s.x && pos.x <= s.x + s.width && pos.y >= hitY && pos.y <= hitY + hitHeight) {
+          hitId = s.id;
+          hitType = 'shape';
+          break;
+        }
+      }
+    }
+
     if (hitId) {
       saveHistory();
-      // 이미 선택된 그룹 안에 있는 요소를 클릭한 경우 선택 상태 유지
+      
       const isAlreadySelected = (hitType === 'layer' && selectedLayerIds.includes(hitId)) || 
-                                (hitType === 'sticker' && selectedStickerIds.includes(hitId));
+                                (hitType === 'sticker' && selectedStickerIds.includes(hitId)) ||
+                                (hitType === 'shape' && selectedShapeIds.includes(hitId));
       
       if (!isAlreadySelected) {
         selectItem(hitId, hitType, e.shiftKey);
       }
       
       setIsDragging(true);
-      setLastPos(pos); // 🌟 다중 선택 이동을 위해 시작 좌표 저장
+      setLastPos(pos);
       return;
     }
 
@@ -239,32 +318,80 @@ function CanvasPreview() {
 
     if (!isDragging) return;
     const pos = getMousePos(e);
+    const { width, height } = getCanvasDimensions();
+    const SNAP_THRESHOLD = 15;
     
-    // 🌟 델타 값(이동 거리)만큼 모든 선택된 요소 이동
-    const dx = pos.x - lastPos.x;
-    const dy = pos.y - lastPos.y;
-    
+    // 단일 선택일 경우 중앙 스냅 적용
+    const totalSelected = selectedLayerIds.length + selectedStickerIds.length + selectedShapeIds.length;
+    let guideX = null;
+    let guideY = null;
+    let dx = pos.x - lastPos.x;
+    let dy = pos.y - lastPos.y;
+
+    if (totalSelected === 1) {
+      let targetX = pos.x;
+      let targetY = pos.y;
+      
+      if (Math.abs(targetX - width / 2) < SNAP_THRESHOLD) {
+        dx = (width / 2) - lastPos.x; // 스냅 위치로 보정
+        guideX = width / 2;
+      }
+      if (Math.abs(targetY - height / 2) < SNAP_THRESHOLD) {
+        dy = (height / 2) - lastPos.y;
+        guideY = height / 2;
+      }
+      setGuidelines({ x: guideX, y: guideY });
+    }
+
     moveSelectedItems(dx, dy);
-    setLastPos(pos);
+    
+    if (!guideX && !guideY) {
+      setLastPos(pos); // 스냅되지 않았을 때만 위치 갱신
+    } else {
+      setLastPos({ x: lastPos.x + dx, y: lastPos.y + dy });
+    }
   };
 
   const handleMouseUp = () => {
     setIsPanning(false);
     setIsDragging(false);
+    setGuidelines({ x: null, y: null });
   };
 
   return (
     <div className="preview-panel" style={{ position: 'relative' }}>
+      
+      {/* 줌 컨트롤 UI */}
       <div style={{ position: 'absolute', bottom: '80px', right: '20px', zIndex: 10, display: 'flex', gap: '4px', background: 'var(--bg-surface)', padding: '4px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border-base)' }}>
         <button className="action-sm-btn" onClick={() => setZoom(prev => Math.max(0.2, prev - 0.1))} title="축소">-</button>
-        <span style={{ fontSize: '12px', padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: '500' }}>{Math.round(zoom * 100)}%</span>
+        <span style={{ fontSize: '12px', padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: '500' }}>
+          {Math.round(zoom * 100)}%
+        </span>
         <button className="action-sm-btn" onClick={() => setZoom(prev => Math.min(3, prev + 0.1))} title="확대">+</button>
         <button className="action-sm-btn" onClick={() => { setZoom(1); setPan({x:0, y:0}); }} title="초기화">Reset</button>
       </div>
 
-      <div ref={containerRef} className="canvas-container" style={{ overflow: 'hidden', cursor: isSpacePressed ? (isPanning ? 'grabbing' : 'grab') : 'default' }}>
-        <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }}>
-          <canvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} style={{ cursor: isDragging ? 'grabbing' : (isSpacePressed ? 'inherit' : 'default') }} />
+      <div 
+        ref={containerRef}
+        className="canvas-container" 
+        style={{ 
+          overflow: 'hidden', 
+          cursor: isSpacePressed ? (isPanning ? 'grabbing' : 'grab') : 'default' 
+        }}
+      >
+        <div style={{ 
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, 
+          transformOrigin: 'center center',
+          transition: isPanning ? 'none' : 'transform 0.1s ease-out'
+        }}>
+          <canvas 
+            ref={canvasRef} 
+            onMouseDown={handleMouseDown} 
+            onMouseMove={handleMouseMove} 
+            onMouseUp={handleMouseUp} 
+            onMouseLeave={handleMouseUp} 
+            style={{ cursor: isDragging ? 'grabbing' : (isSpacePressed ? 'inherit' : 'default') }} 
+          />
         </div>
       </div>
       
