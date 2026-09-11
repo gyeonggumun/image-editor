@@ -16,21 +16,18 @@ export default function PropertyEditor() {
   const activeShape = !isMultiSelected && selectedShapeIds.length === 1 ? shapes.find(s => s.id === selectedShapeIds[0]) : null;
 
   const currentGradientColors = activeLayer?.gradientColors || [activeLayer?.color, activeLayer?.color2 || '#a1a1aa'];
-
   const handleGradientChange = (index, newColor) => {
     const updated = [...currentGradientColors];
     updated[index] = newColor;
     updateLayer(activeLayer.id, { gradientColors: updated });
   };
 
-  if (isNoneSelected) {
-    return <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px', padding: '24px 0', border: '1px dashed var(--border-base)', borderRadius: 'var(--radius-md)' }}>편집할 대상을 선택해주세요</div>;
-  }
+  if (isNoneSelected) return <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px', padding: '24px 0', border: '1px dashed var(--border-base)', borderRadius: 'var(--radius-md)' }}>편집할 대상을 선택해주세요</div>;
 
   return (
     <div style={{ background: 'var(--bg-canvas)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-base)' }}>
       {isMultiSelected ? (
-        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '12px 0' }}>다중 선택 상태입니다.<br/>캔버스에서 드래그하여 이동하세요.</div>
+        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '12px 0' }}>다중 선택 상태입니다.<br/>드래그하거나 방향키로 이동하세요.</div>
       ) : (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -55,15 +52,44 @@ export default function PropertyEditor() {
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                <div className="control-group" style={{ width: '60px' }}>
-                  <label>색상</label>
-                  <input type="color" className="control-input" style={{ padding: '0', height: '32px', width: '100%', border: 'none' }} value={activeShape.fill} onChange={(e) => updateShape(activeShape.id, { fill: e.target.value })} />
+
+              {activeShape.type === 'rect' && (
+                <div className="control-group">
+                  <label>모서리 둥글기: {activeShape.borderRadius || 0}px</label>
+                  <input type="range" min="0" max="100" value={activeShape.borderRadius || 0} onChange={(e) => updateShape(activeShape.id, { borderRadius: Number(e.target.value) })} />
                 </div>
-                <div className="control-group" style={{ flex: 1 }}>
-                  <label>불투명도: {Math.round(activeShape.opacity * 100)}%</label>
-                  <input type="range" min="0" max="1" step="0.05" value={activeShape.opacity} onChange={(e) => updateShape(activeShape.id, { opacity: Number(e.target.value) })} />
+              )}
+
+              {activeShape.type !== 'line' && (
+                <div className="control-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', padding: '8px 0' }}>
+                  <input type="checkbox" id="fill-toggle" checked={activeShape.hasFill ?? true} onChange={(e) => updateShape(activeShape.id, { hasFill: e.target.checked })} style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
+                  <label htmlFor="fill-toggle" style={{ cursor: 'pointer', margin: 0 }}>배경 채우기</label>
+                  
+                  <input type="color" className="control-input" disabled={!(activeShape.hasFill ?? true)} style={{ padding: '0', height: '24px', width: '40px', border: 'none', marginLeft: 'auto' }} value={activeShape.fill} onChange={(e) => updateShape(activeShape.id, { fill: e.target.value })} />
                 </div>
+              )}
+
+              <div className="control-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', padding: '8px 0' }}>
+                {activeShape.type !== 'line' && (
+                  <>
+                    <input type="checkbox" id="stroke-toggle" checked={activeShape.hasStroke || false} onChange={(e) => updateShape(activeShape.id, { hasStroke: e.target.checked })} style={{ accentColor: 'var(--accent)', cursor: 'pointer' }} />
+                    <label htmlFor="stroke-toggle" style={{ cursor: 'pointer', margin: 0 }}>테두리 선</label>
+                  </>
+                )}
+                {activeShape.type === 'line' && <label style={{ margin: 0 }}>선 색상/두께</label>}
+                <input type="color" className="control-input" disabled={activeShape.type !== 'line' && !activeShape.hasStroke} style={{ padding: '0', height: '24px', width: '40px', border: 'none', marginLeft: 'auto' }} value={activeShape.strokeColor || '#18181b'} onChange={(e) => updateShape(activeShape.id, { strokeColor: e.target.value })} />
+              </div>
+
+              {(activeShape.hasStroke || activeShape.type === 'line') && (
+                <div className="control-group">
+                  <label>선 두께: {activeShape.type === 'line' ? activeShape.height : (activeShape.strokeWidth || 2)}px</label>
+                  <input type="range" min="1" max="20" value={activeShape.type === 'line' ? activeShape.height : (activeShape.strokeWidth || 2)} onChange={(e) => updateShape(activeShape.id, activeShape.type === 'line' ? { height: Number(e.target.value) } : { strokeWidth: Number(e.target.value) })} />
+                </div>
+              )}
+
+              <div className="control-group">
+                <label>전체 불투명도: {Math.round((activeShape.opacity ?? 1) * 100)}%</label>
+                <input type="range" min="0" max="1" step="0.05" value={activeShape.opacity ?? 1} onChange={(e) => updateShape(activeShape.id, { opacity: Number(e.target.value) })} />
               </div>
             </>
           )}
