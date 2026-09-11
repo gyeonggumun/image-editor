@@ -3,9 +3,8 @@ import useEditorStore from '../store/useEditorStore';
 
 export default function useShortcuts(containerRef, setZoom) {
   const [isSpacePressed, setIsSpacePressed] = useState(false);
-  const { undo, redo } = useEditorStore();
+  const store = useEditorStore();
 
-  // 단축키 (Undo, Redo, Space)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['TEXTAREA', 'INPUT'].includes(e.target.tagName)) return;
@@ -14,12 +13,27 @@ export default function useShortcuts(containerRef, setZoom) {
         e.preventDefault();
         setIsSpacePressed(true);
       }
+      
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        if (e.shiftKey) redo(); else undo();
+        if (e.shiftKey) store.redo(); else store.undo();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
         e.preventDefault();
-        redo();
+        store.redo();
+      }
+
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        const totalSelected = store.selectedLayerIds.length + store.selectedStickerIds.length + store.selectedShapeIds.length;
+        if (totalSelected > 0) {
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : 1; 
+          let dx = 0, dy = 0;
+          if (e.code === 'ArrowUp') dy = -step;
+          if (e.code === 'ArrowDown') dy = step;
+          if (e.code === 'ArrowLeft') dx = -step;
+          if (e.code === 'ArrowRight') dx = step;
+          store.moveSelectedItems(dx, dy);
+        }
       }
     };
     
@@ -33,9 +47,8 @@ export default function useShortcuts(containerRef, setZoom) {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [undo, redo, isSpacePressed]);
+  }, [store, isSpacePressed]);
 
-  // 마우스 휠 줌(Zoom)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
