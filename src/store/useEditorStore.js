@@ -4,7 +4,6 @@ const useEditorStore = create((set, get) => ({
   image: null,
   ratio: '1:1',
   
-  // 🌟 이미지 필터 상태 추가
   imageFilters: { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
   
   layers: [{ 
@@ -31,7 +30,7 @@ const useEditorStore = create((set, get) => ({
         layers: JSON.parse(JSON.stringify(layers)), 
         stickers: JSON.parse(JSON.stringify(stickers)),
         shapes: JSON.parse(JSON.stringify(shapes)),
-        imageFilters: { ...imageFilters } // 🌟 필터 상태 저장
+        imageFilters: { ...imageFilters } 
       }].slice(-30),
       future: []
     }));
@@ -84,7 +83,6 @@ const useEditorStore = create((set, get) => ({
   
   setRatio: (ratio) => set({ ratio }),
   
-  // 🌟 이미지 필터 업데이트 액션
   setImageFilter: (key, value) => {
     set((state) => ({
       imageFilters: { ...state.imageFilters, [key]: value }
@@ -126,7 +124,12 @@ const useEditorStore = create((set, get) => ({
         id: Date.now(), type, x: 100, y: 100, 
         width: type === 'line' ? 200 : 150, height: type === 'line' ? 5 : 150, 
         fill: type === 'line' ? '#000000' : '#e5e7eb', 
-        opacity: 1 
+        opacity: 1,
+        hasFill: type !== 'line', 
+        hasStroke: type === 'line',
+        strokeColor: '#18181b',
+        strokeWidth: 2,
+        borderRadius: 0
       };
       return { shapes: [...state.shapes, newShape], selectedShapeIds: [newShape.id], selectedLayerIds: [], selectedStickerIds: [] };
     });
