@@ -14,15 +14,12 @@ export default function CanvasPreview() {
   const stickerCache = useRef({});
   const [, setRenderTrigger] = useState(0);
 
-  // 줌 & 팬 상태
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
-  // 커스텀 훅 연결
   const { isSpacePressed } = useShortcuts(containerRef, setZoom);
   const { handleMouseDown, handleMouseMove, handleMouseUp, isDragging, isPanning, getCanvasDimensions } = useCanvasEvents(canvasRef, isSpacePressed, pan, setPan);
 
-  // 🌟 캔버스 렌더링 로직 (핵심)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -49,9 +46,38 @@ export default function CanvasPreview() {
     shapes.forEach(shape => {
       ctx.globalAlpha = shape.opacity !== undefined ? shape.opacity : 1;
       ctx.beginPath();
-      if (shape.type === 'rect') { ctx.rect(shape.x, shape.y, shape.width, shape.height); ctx.fillStyle = shape.fill; ctx.fill(); }
-      else if (shape.type === 'circle') { const r = Math.min(shape.width, shape.height) / 2; ctx.arc(shape.x + r, shape.y + r, r, 0, 2 * Math.PI); ctx.fillStyle = shape.fill; ctx.fill(); }
-      else if (shape.type === 'line') { ctx.moveTo(shape.x, shape.y); ctx.lineTo(shape.x + shape.width, shape.y); ctx.strokeStyle = shape.fill; ctx.lineWidth = shape.height; ctx.lineCap = 'round'; ctx.stroke(); }
+      
+      if (shape.type === 'rect') {
+        if (ctx.roundRect) {
+          ctx.roundRect(shape.x, shape.y, shape.width, shape.height, shape.borderRadius || 0);
+        } else {
+          ctx.rect(shape.x, shape.y, shape.width, shape.height);
+        }
+      } else if (shape.type === 'circle') {
+        const radius = Math.min(shape.width, shape.height) / 2;
+        ctx.arc(shape.x + radius, shape.y + radius, radius, 0, 2 * Math.PI);
+      } else if (shape.type === 'line') {
+        ctx.moveTo(shape.x, shape.y);
+        ctx.lineTo(shape.x + shape.width, shape.y);
+      }
+
+      if (shape.type !== 'line') {
+        if (shape.hasFill ?? true) {
+          ctx.fillStyle = shape.fill;
+          ctx.fill();
+        }
+        if (shape.hasStroke) {
+          ctx.strokeStyle = shape.strokeColor || '#18181b';
+          ctx.lineWidth = shape.strokeWidth || 2;
+          ctx.stroke();
+        }
+      } else {
+        ctx.strokeStyle = shape.strokeColor || shape.fill;
+        ctx.lineWidth = shape.height;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+      
       ctx.globalAlpha = 1;
 
       if (selectedShapeIds.includes(shape.id)) {
