@@ -7,6 +7,7 @@ export default function CanvasPreview() {
   const canvasRef = useRef(null);
   
   const { 
+    ratio, // 🌟 누락되었던 ratio 상태 추가
     image, imageFilters, layers, stickers, shapes, guidelines, 
     selectedLayerIds, selectedStickerIds, selectedShapeIds,
     undo, redo, saveHistory, selectItem, clearSelection, moveSelectedItems,
@@ -26,10 +27,10 @@ export default function CanvasPreview() {
   // 드래그 및 리사이징 상태
   const [isDragging, setIsDragging] = useState(false);
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
-  const [resizingItem, setResizingItem] = useState(null); // { id, type, handle }
+  const [resizingItem, setResizingItem] = useState(null); 
   const [hoverHandle, setHoverHandle] = useState(null);
 
-  // 🌟 1. 단축키 및 방향키 정밀 이동 이벤트
+  // 1. 단축키 및 방향키 정밀 이동 이벤트
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['TEXTAREA', 'INPUT'].includes(e.target.tagName)) return;
@@ -38,7 +39,6 @@ export default function CanvasPreview() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); } 
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
 
-      // 방향키를 이용한 정밀 이동(Nudge)
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
         const totalSelected = selectedLayerIds.length + selectedStickerIds.length + selectedShapeIds.length;
         if (totalSelected > 0) {
@@ -59,7 +59,6 @@ export default function CanvasPreview() {
     return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
   }, [undo, redo, isSpacePressed, selectedLayerIds, selectedStickerIds, selectedShapeIds, moveSelectedItems]);
 
-  // 마우스 휠 확대/축소
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -85,12 +84,11 @@ export default function CanvasPreview() {
     return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   };
 
-  // 🌟 2. 모서리 조절점(핸들) 충돌 감지 로직
+  // 2. 모서리 조절점(핸들) 충돌 감지 로직
   const checkResizeHandleHit = (pos) => {
-    const HANDLE_SIZE = 12; // 클릭하기 쉽게 영역 넉넉히 확보
+    const HANDLE_SIZE = 12; 
     const isHit = (hx, hy) => Math.abs(hx - pos.x) <= HANDLE_SIZE && Math.abs(hy - pos.y) <= HANDLE_SIZE;
 
-    // 도형이 단독 선택되었을 때
     if (selectedShapeIds.length === 1 && selectedLayerIds.length === 0 && selectedStickerIds.length === 0) {
       const shape = shapes.find(s => s.id === selectedShapeIds[0]);
       if (shape) {
@@ -106,7 +104,6 @@ export default function CanvasPreview() {
       }
     }
     
-    // 스티커가 단독 선택되었을 때
     if (selectedStickerIds.length === 1 && selectedLayerIds.length === 0 && selectedShapeIds.length === 0) {
       const sticker = stickers.find(s => s.id === selectedStickerIds[0]);
       if (sticker) {
@@ -119,13 +116,12 @@ export default function CanvasPreview() {
     return null;
   };
 
-  // 🌟 3. 마우스 클릭 (요소 선택 및 리사이즈 시작)
+  // 3. 마우스 클릭 (요소 선택 및 리사이즈 시작)
   const handleMouseDown = (e) => {
     if (isSpacePressed) { setIsPanning(true); setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y }); return; }
     
     const pos = getMousePos(e);
     
-    // 우선순위 1: 모서리 조절점 클릭 확인
     const handleHit = checkResizeHandleHit(pos);
     if (handleHit) {
       saveHistory();
@@ -134,7 +130,6 @@ export default function CanvasPreview() {
       return;
     }
 
-    // 우선순위 2: 요소 본체 클릭 확인
     let hitId = null; let hitType = null;
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
@@ -167,21 +162,19 @@ export default function CanvasPreview() {
     clearSelection();
   };
 
-  // 🌟 4. 마우스 이동 (드래그, 리사이징 및 마우스 커서 호버 처리)
+  // 4. 마우스 이동 (드래그, 리사이징 및 마우스 커서 호버 처리)
   const handleMouseMove = (e) => {
     if (isPanning) { setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y }); return; }
     
     const pos = getMousePos(e);
     const { width: canvasW, height: canvasH } = getCanvasDimensions();
 
-    // 아무것도 드래그하지 않을 때 마우스 호버 커서 감지
     if (!isDragging && !resizingItem) {
       const hit = checkResizeHandleHit(pos);
       setHoverHandle(hit ? hit.handle : null);
       return;
     }
 
-    // 모서리를 잡아당겨 리사이징 중일 때
     if (resizingItem) {
       const dx = pos.x - lastPos.x;
       const dy = pos.y - lastPos.y;
@@ -213,7 +206,6 @@ export default function CanvasPreview() {
       return;
     }
 
-    // 일반 드래그 이동 (스냅 가이드라인 포함)
     if (isDragging) {
       let dx = pos.x - lastPos.x; let dy = pos.y - lastPos.y;
       let guideX = null; let guideY = null;
@@ -229,7 +221,7 @@ export default function CanvasPreview() {
 
   const handleMouseUp = () => { setIsPanning(false); setIsDragging(false); setResizingItem(null); setGuidelines({ x: null, y: null }); };
 
-  // 🌟 동적 마우스 커서 적용 로직
+  // 5. 동적 마우스 커서 적용 로직
   let canvasCursor = 'default';
   const activeHandle = resizingItem ? resizingItem.handle : hoverHandle;
   
@@ -240,7 +232,7 @@ export default function CanvasPreview() {
     else canvasCursor = 'ew-resize';
   } else if (isDragging) canvasCursor = 'grabbing';
 
-  // 🌟 캔버스 그리기 (Render)
+  // 6. 캔버스 그리기 (Render)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -260,7 +252,6 @@ export default function CanvasPreview() {
       ctx.filter = 'none';
     }
 
-    // 공통 핸들 그리기 함수
     const drawHandle = (hx, hy) => {
       ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.rect(hx - 5, hy - 5, 10, 10); ctx.fill(); ctx.stroke();
@@ -287,7 +278,6 @@ export default function CanvasPreview() {
       }
       ctx.globalAlpha = 1;
 
-      // 단독 선택 시 파란색 외곽선 및 리사이즈 핸들 표시
       if (selectedShapeIds.includes(shape.id)) {
         ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
         ctx.strokeRect(shape.x - 2, shape.y - (shape.type === 'line' ? shape.height/2 + 2 : 2), shape.width + 4, (shape.type === 'line' ? shape.height : shape.height) + 4); 
@@ -348,7 +338,7 @@ export default function CanvasPreview() {
       if (guidelines.y !== null) { ctx.beginPath(); ctx.moveTo(0, guidelines.y); ctx.lineTo(width, guidelines.y); ctx.stroke(); }
       ctx.setLineDash([]); 
     }
-  }, [image, imageFilters, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging, resizingItem, hoverHandle]);
+  }, [image, imageFilters, ratio, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging, resizingItem, hoverHandle]);
 
   return (
     <div className="preview-panel" style={{ position: 'relative' }}>
