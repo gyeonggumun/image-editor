@@ -22,10 +22,10 @@ export default function PropertyEditor() {
     updateLayer(activeLayer.id, { gradientColors: updated });
   };
 
-  if (isNoneSelected) return <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px', padding: '24px 0', border: '1px dashed var(--border-base)', borderRadius: 'var(--radius-md)' }}>편집할 대상을 선택해주세요</div>;
+  if (isNoneSelected) return <div className="empty-state">편집할 대상을 선택해주세요</div>;
 
   return (
-    <div style={{ background: 'var(--bg-canvas)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-base)' }}>
+    <div className="property-editor">
       {isMultiSelected ? (
         <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '12px 0' }}>다중 선택 상태입니다.<br/>드래그하거나 방향키로 이동하세요.</div>
       ) : (

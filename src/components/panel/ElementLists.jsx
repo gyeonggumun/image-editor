@@ -19,9 +19,9 @@ export default function ElementLists() {
 
   const renderList = (title, items, type, onAdd, selectedIds, onDelete, addBtnLabel) => (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+      <div className="element-list-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>{title}</h3>
-        <div style={{ display: 'flex', gap: '4px' }}>
+        <div className="element-list-actions" style={{ display: 'flex', gap: '4px' }}>
           {type === 'shape' ? (
             <>
               <button className="action-sm-btn" onClick={() => onAdd('rect')}>+ 사각</button>
@@ -38,7 +38,7 @@ export default function ElementLists() {
           )}
         </div>
       </div>
-      <ul className="template-list" style={{ marginBottom: '24px' }}>
+      <ul className="template-list element-list" style={{ marginBottom: '24px' }}>
         {items.map((item, index) => (
           <li key={item.id} className="template-item" 
             style={{ 

@@ -29,8 +29,8 @@ export default function BackgroundSettings() {
       </div>
 
       {image && (
-        <div className="control-group" style={{ padding: '12px', background: 'var(--bg-canvas)', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-sm)' }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '12px' }}>배경 이미지 필터</div>
+        <div className="control-group filter-card">
+          <div className="filter-card-title">배경 이미지 필터</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {['brightness', 'contrast', 'grayscale', 'blur'].map((filter) => (
               <div key={filter} style={{ display: 'flex', alignItems: 'center' }}>
@@ -59,7 +59,7 @@ export default function BackgroundSettings() {
           <option value="9:16">9:16 (스토리/쇼츠)</option>
         </select>
       </div>
-      <hr style={{ margin: '20px 0', borderColor: 'var(--border-base)', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
+      <hr className="section-divider" />
     </>
   );
 }
