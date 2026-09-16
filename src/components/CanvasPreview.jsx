@@ -150,7 +150,7 @@ export default function CanvasPreview() {
       ctx.setLineDash([]); 
     }
 
-  }, [ratio, image, imageFilters, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging, resizingItem, hoverHandle]);
+  }, [ratio, image, imageFilters, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging, resizingItem, hoverHandle, getCanvasDimensions]);
 
   return (
     <div className="preview-panel" style={{ position: 'relative' }}>

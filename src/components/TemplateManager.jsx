@@ -49,6 +49,8 @@ const normalizeTemplate = (template, index) => {
 
 function TemplateManager() {
   const store = useEditorStore();
+  const setTemplates = useEditorStore(state => state.setTemplates);
+  const setErrorMessage = useEditorStore(state => state.setErrorMessage);
   const [saveTag, setSaveTag] = useState('기본');
   const [filterTag, setFilterTag] = useState('전체');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,15 +65,15 @@ function TemplateManager() {
         const res = await fetch(`/api/templates?userId=${userId}`);
         if (!res.ok) throw new Error('템플릿 API 응답 오류');
         const data = await res.json();
-        store.setTemplates(Array.isArray(data) ? data : data.templates || []);
+        setTemplates(Array.isArray(data) ? data : data.templates || []);
       } catch {
-        store.setErrorMessage('클라우드 템플릿을 불러오지 못했습니다.');
+        setErrorMessage('클라우드 템플릿을 불러오지 못했습니다.');
       } finally {
         setIsLoading(false);
       }
     };
     fetchTemplates();
-  }, []); 
+  }, [setTemplates, setErrorMessage, userId]);
 
   const syncToCloud = async (updatedTemplates) => {
     try {
@@ -85,7 +87,7 @@ function TemplateManager() {
       if (data.success === false) throw new Error('클라우드 저장소를 사용할 수 없습니다.');
       return true;
     } catch {
-      store.setErrorMessage('클라우드 동기화에 실패했습니다. 현재 작업은 이 브라우저에만 유지됩니다.');
+      setErrorMessage('클라우드 동기화에 실패했습니다. 현재 작업은 이 브라우저에만 유지됩니다.');
       return false;
     }
   };
@@ -114,7 +116,7 @@ function TemplateManager() {
     store.setShapes(tmpl.shapes || []);
     store.setImageFilters(tmpl.imageFilters || DEFAULT_IMAGE_FILTERS);
     store.clearSelection();
-    store.setErrorMessage('');
+    setErrorMessage('');
   };
 
   const deleteTemplate = async (id) => {
@@ -145,9 +147,9 @@ function TemplateManager() {
         const normalized = parsed.map(normalizeTemplate);
         store.setTemplates(normalized);
         const synced = await syncToCloud(normalized);
-        if (synced) store.setErrorMessage('');
+        if (synced) setErrorMessage('');
       } catch {
-        store.setErrorMessage('잘못된 JSON 파일입니다.');
+        setErrorMessage('잘못된 JSON 파일입니다.');
       }
     };
     reader.readAsText(file);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import useEditorStore from '../store/useEditorStore';
 
 export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) {
@@ -12,12 +12,12 @@ export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) 
   const [resizingItem, setResizingItem] = useState(null);
   const [hoverHandle, setHoverHandle] = useState(null);
 
-  const getCanvasDimensions = () => {
+  const getCanvasDimensions = useCallback(() => {
     const baseWidth = 600;
     if (store.ratio === '1:1') return { width: baseWidth, height: baseWidth };
     if (store.ratio === '4:5') return { width: baseWidth, height: baseWidth * 1.25 };
     return { width: baseWidth, height: baseWidth * (16 / 9) };
-  };
+  }, [store.ratio]);
 
   const getMousePos = (e) => {
     const canvas = canvasRef.current;
