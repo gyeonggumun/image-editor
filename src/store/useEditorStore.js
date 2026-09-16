@@ -227,6 +227,7 @@ const useEditorStore = create((set, get) => ({
   setLayers: (layers) => set({ layers }), 
   setStickers: (stickers) => set({ stickers }),
   setShapes: (shapes) => set({ shapes }),
+  setImageFilters: (imageFilters) => set({ imageFilters: { ...imageFilters } }),
   setTemplates: (templates) => set({ templates }),
   setErrorMessage: (errorMessage) => set({ errorMessage }),
 }));

@@ -4,10 +4,47 @@ import useEditorStore from '../store/useEditorStore';
 const getUserId = () => {
   let id = localStorage.getItem('editor_user_id');
   if (!id) {
-    id = crypto.randomUUID();
+    id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `editor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     localStorage.setItem('editor_user_id', id);
   }
   return id;
+};
+
+const RATIOS = ['1:1', '4:5', '9:16'];
+const DEFAULT_IMAGE_FILTERS = { brightness: 100, contrast: 100, grayscale: 0, blur: 0 };
+const numberOr = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+
+const normalizeTemplate = (template, index) => {
+  if (!template || typeof template !== 'object' || !Array.isArray(template.layers) || !Array.isArray(template.stickers)) {
+    throw new Error('레이어와 에셋 목록이 없는 템플릿이 포함되어 있습니다.');
+  }
+  return {
+    id: template.id ?? `imported-${Date.now()}-${index}`,
+    name: typeof template.name === 'string' && template.name.trim() ? template.name : `템플릿 ${index + 1}`,
+    ratio: RATIOS.includes(template.ratio) ? template.ratio : '1:1',
+    tag: typeof template.tag === 'string' ? template.tag : '기본',
+    layers: template.layers.map((layer, layerIndex) => ({
+      id: layer.id ?? `layer-${Date.now()}-${index}-${layerIndex}`,
+      text: String(layer.text ?? ''), x: numberOr(layer.x, 50), y: numberOr(layer.y, 50), size: numberOr(layer.size, 40),
+      color: typeof layer.color === 'string' ? layer.color : '#18181b', useGradient: Boolean(layer.useGradient),
+      fontFamily: typeof layer.fontFamily === 'string' ? layer.fontFamily : 'sans-serif',
+      gradientColors: Array.isArray(layer.gradientColors) && layer.gradientColors.length >= 2 ? layer.gradientColors : ['#18181b', '#a1a1aa'],
+    })),
+    stickers: template.stickers.map((sticker, stickerIndex) => ({
+      id: sticker.id ?? `sticker-${Date.now()}-${index}-${stickerIndex}`, src: String(sticker.src ?? ''),
+      x: numberOr(sticker.x, 150), y: numberOr(sticker.y, 150), width: numberOr(sticker.width, 100), height: numberOr(sticker.height, 100),
+    })),
+    shapes: (Array.isArray(template.shapes) ? template.shapes : []).map((shape, shapeIndex) => ({
+      id: shape.id ?? `shape-${Date.now()}-${index}-${shapeIndex}`, type: ['rect', 'circle', 'line'].includes(shape.type) ? shape.type : 'rect',
+      x: numberOr(shape.x, 100), y: numberOr(shape.y, 100), width: numberOr(shape.width, 150), height: numberOr(shape.height, 150),
+      fill: typeof shape.fill === 'string' ? shape.fill : '#e5e7eb', opacity: numberOr(shape.opacity, 1), hasFill: shape.hasFill ?? true,
+      hasStroke: Boolean(shape.hasStroke), strokeColor: typeof shape.strokeColor === 'string' ? shape.strokeColor : '#18181b',
+      strokeWidth: numberOr(shape.strokeWidth, 2), borderRadius: numberOr(shape.borderRadius, 0),
+    })),
+    imageFilters: { ...DEFAULT_IMAGE_FILTERS, ...(template.imageFilters || {}) },
+  };
 };
 
 function TemplateManager() {
@@ -24,11 +61,10 @@ function TemplateManager() {
       setIsLoading(true);
       try {
         const res = await fetch(`/api/templates?userId=${userId}`);
-        if (res.ok) {
-          const data = await res.json();
-          store.setTemplates(data || []);
-        }
-      } catch (e) {
+        if (!res.ok) throw new Error('템플릿 API 응답 오류');
+        const data = await res.json();
+        store.setTemplates(Array.isArray(data) ? data : data.templates || []);
+      } catch {
         store.setErrorMessage('클라우드 템플릿을 불러오지 못했습니다.');
       } finally {
         setIsLoading(false);
@@ -39,13 +75,18 @@ function TemplateManager() {
 
   const syncToCloud = async (updatedTemplates) => {
     try {
-      await fetch(`/api/templates?userId=${userId}`, {
+      const res = await fetch(`/api/templates?userId=${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ templates: updatedTemplates })
       });
-    } catch (e) {
-      store.setErrorMessage('클라우드 동기화에 실패했습니다.');
+      if (!res.ok) throw new Error('템플릿 API 응답 오류');
+      const data = await res.json().catch(() => ({}));
+      if (data.success === false) throw new Error('클라우드 저장소를 사용할 수 없습니다.');
+      return true;
+    } catch {
+      store.setErrorMessage('클라우드 동기화에 실패했습니다. 현재 작업은 이 브라우저에만 유지됩니다.');
+      return false;
     }
   };
 
@@ -56,6 +97,8 @@ function TemplateManager() {
       ratio: store.ratio,
       layers: store.layers,
       stickers: store.stickers,
+      shapes: store.shapes,
+      imageFilters: store.imageFilters,
       tag: saveTag
     };
     const updated = [...store.templates, newTemplate];
@@ -64,11 +107,13 @@ function TemplateManager() {
   };
 
   const loadTemplate = (tmpl) => {
+    store.saveHistory();
     store.setRatio(tmpl.ratio);
     store.setLayers(tmpl.layers || []); 
     store.setStickers(tmpl.stickers || []); 
-    store.setActiveLayer(null);
-    store.setActiveSticker(null);
+    store.setShapes(tmpl.shapes || []);
+    store.setImageFilters(tmpl.imageFilters || DEFAULT_IMAGE_FILTERS);
+    store.clearSelection();
     store.setErrorMessage('');
   };
 
@@ -97,11 +142,11 @@ function TemplateManager() {
       try {
         const parsed = JSON.parse(event.target.result);
         if (!Array.isArray(parsed)) throw new Error("배열 형태가 아닙니다.");
-        
-        store.setTemplates(parsed);
-        await syncToCloud(parsed);
-        store.setErrorMessage('');
-      } catch (err) {
+        const normalized = parsed.map(normalizeTemplate);
+        store.setTemplates(normalized);
+        const synced = await syncToCloud(normalized);
+        if (synced) store.setErrorMessage('');
+      } catch {
         store.setErrorMessage('잘못된 JSON 파일입니다.');
       }
     };
