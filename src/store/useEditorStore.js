@@ -18,6 +18,9 @@ const useEditorStore = create((set, get) => ({
   selectedShapeIds: [], 
   
   guidelines: { x: null, y: null },
+  maskMode: false,
+  maskBrushSize: 48,
+  maskStrokes: [],
   templates: [],
   errorMessage: '',
   past: [],
@@ -78,7 +81,12 @@ const useEditorStore = create((set, get) => ({
 
   setImage: (img) => {
     get().saveHistory();
-    set({ image: img, imageFilters: { brightness: 100, contrast: 100, grayscale: 0, blur: 0 } });
+    set({
+      image: img,
+      imageFilters: { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
+      maskMode: false,
+      maskStrokes: []
+    });
   },
   
   setRatio: (ratio) => set({ ratio }),
@@ -224,6 +232,10 @@ const useEditorStore = create((set, get) => ({
   },
 
   setGuidelines: (guidelines) => set({ guidelines }),
+  setMaskMode: (maskMode) => set({ maskMode }),
+  setMaskBrushSize: (maskBrushSize) => set({ maskBrushSize }),
+  addMaskStroke: (stroke) => set((state) => ({ maskStrokes: [...state.maskStrokes, stroke] })),
+  clearMaskSelection: () => set({ maskStrokes: [], maskMode: false }),
   setLayers: (layers) => set({ layers }), 
   setStickers: (stickers) => set({ stickers }),
   setShapes: (shapes) => set({ shapes }),

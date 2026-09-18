@@ -4,11 +4,32 @@ import useShortcuts from '../hooks/useShortcuts';
 import useCanvasEvents from '../hooks/useCanvasEvents';
 import { jsPDF } from 'jspdf';
 
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const pointsToPath = (points) => points
+  .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+  .join(' ');
+
 export default function CanvasPreview() {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   
-  const { ratio, image, imageFilters, layers, stickers, shapes, guidelines, selectedLayerIds, selectedStickerIds, selectedShapeIds } = useEditorStore();
+  const {
+    ratio,
+    image,
+    imageFilters,
+    layers,
+    stickers,
+    shapes,
+    guidelines,
+    selectedLayerIds,
+    selectedStickerIds,
+    selectedShapeIds,
+    maskMode,
+    maskBrushSize,
+    maskStrokes,
+    addMaskStroke
+  } = useEditorStore();
   
   const stickerCache = useRef({});
   const [, setRenderTrigger] = useState(0);
@@ -20,6 +41,35 @@ export default function CanvasPreview() {
   
   // 훅에서 가져오는 상태 확장
   const { handleMouseDown, handleMouseMove, handleMouseUp, isDragging, isPanning, getCanvasDimensions, resizingItem, hoverHandle } = useCanvasEvents(canvasRef, isSpacePressed, pan, setPan);
+  const canvasSize = getCanvasDimensions();
+  const maskOverlayRef = useRef(null);
+  const [currentMaskStroke, setCurrentMaskStroke] = useState(null);
+
+  const getMaskPoint = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return {
+      x: clamp(((event.clientX - rect.left) / rect.width) * canvasSize.width, 0, canvasSize.width),
+      y: clamp(((event.clientY - rect.top) / rect.height) * canvasSize.height, 0, canvasSize.height)
+    };
+  };
+
+  const handleMaskPointerDown = (event) => {
+    if (!maskMode) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setCurrentMaskStroke([getMaskPoint(event)]);
+  };
+
+  const handleMaskPointerMove = (event) => {
+    if (!maskMode || !currentMaskStroke) return;
+    setCurrentMaskStroke((stroke) => [...stroke, getMaskPoint(event)]);
+  };
+
+  const handleMaskPointerUp = (event) => {
+    if (!currentMaskStroke) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    addMaskStroke(currentMaskStroke);
+    setCurrentMaskStroke(null);
+  };
 
   // 동적 마우스 커서 설정
   let canvasCursor = 'default';
@@ -165,12 +215,34 @@ export default function CanvasPreview() {
       </div>
 
       <div ref={containerRef} className="canvas-container" style={{ overflow: 'hidden' }}>
-        <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }}>
+        <div className="canvas-stage" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }}>
           <canvas 
             ref={canvasRef} 
+            width={canvasSize.width}
+            height={canvasSize.height}
             onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} 
             style={{ cursor: canvasCursor }} 
           />
+          <svg
+            ref={maskOverlayRef}
+            className={`mask-overlay${maskMode ? ' is-active' : ''}`}
+            viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`}
+            aria-label="지우기 영역 마스크"
+            onPointerDown={handleMaskPointerDown}
+            onPointerMove={handleMaskPointerMove}
+            onPointerUp={handleMaskPointerUp}
+            onPointerCancel={handleMaskPointerUp}
+          >
+            {[...maskStrokes, ...(currentMaskStroke ? [currentMaskStroke] : [])].map((stroke, index) => {
+              const path = pointsToPath(stroke);
+              return (
+                <g key={`${index}-${stroke.length}`}>
+                  <path d={path} fill="none" stroke="#f97316" strokeWidth={maskBrushSize} strokeLinecap="round" strokeLinejoin="round" opacity="0.25" />
+                  <path d={path} fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+                </g>
+              );
+            })}
+          </svg>
         </div>
       </div>
       
