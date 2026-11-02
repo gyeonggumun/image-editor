@@ -1,9 +1,9 @@
 import useEditorStore from '../store/useEditorStore';
 import BackgroundSettings from './panel/BackgroundSettings';
 import ElementLists from './panel/ElementLists';
-import PropertyEditor from './panel/PropertyEditor';
+import DocumentSettings from './panel/DocumentSettings';
 
-export default function ControlPanel() {
+export default function ControlPanel({ mode }) {
   const {
     errorMessage,
     past,
@@ -22,7 +22,7 @@ export default function ControlPanel() {
   return (
     <>
       <div className="panel-header">
-        <h2 className="panel-title">스튜디오 설정</h2>
+        <h2 className="panel-title">{mode === 'resize' ? '크기 조절' : mode === 'enhance' ? '화질 보정' : '도구와 레이어'}</h2>
         <div className="history-actions">
           <button className="action-sm-btn" onClick={undo} disabled={past.length === 0} title="실행 취소">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 10h10a5 5 0 0 1 5 5v2a5 5 0 0 1-5 5H9" strokeLinecap="round"/><path d="M3 10l6-6M3 10l6 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -39,10 +39,10 @@ export default function ControlPanel() {
         </div>
       )}
 
-      <section className="mask-tool-card" aria-label="개체 지우기 마스크 도구">
+      {mode === 'edit' && <details className="mask-details"><summary>영역 표시 도구</summary><section className="mask-tool-card" aria-label="개체 지우기 마스크 도구">
         <div className="mask-tool-header">
           <div>
-            <span className="mask-tool-kicker">AI 지우개 준비</span>
+            <span className="mask-tool-kicker">영역 마스크</span>
             <h3>개체 지우기 마스크</h3>
           </div>
           <span className={`mask-tool-state${maskMode ? ' is-active' : ''}`}>
@@ -50,7 +50,7 @@ export default function ControlPanel() {
           </span>
         </div>
         <p>지우고 싶은 사람이나 물체를 브러시로 칠해 영역을 표시하세요.</p>
-        <div className="mask-tool-note">현재는 선택 영역만 표시하며 AI API를 호출하지 않습니다.</div>
+        <div className="mask-tool-note">영역을 표시하는 도구입니다. 실제 이미지 삭제 기능은 제공하지 않습니다.</div>
         <button
           className={`secondary-btn mask-toggle${maskMode ? ' is-active' : ''}`}
           type="button"
@@ -83,12 +83,12 @@ export default function ControlPanel() {
           </div>
         )}
         {!image && <span className="mask-tool-hint">먼저 배경 이미지를 추가하면 사용할 수 있습니다.</span>}
-      </section>
+      </section></details>}
 
       {/* 🌟 기능별로 분리된 컴포넌트 조합 */}
       <BackgroundSettings />
-      <ElementLists />
-      <PropertyEditor />
+      <DocumentSettings mode={mode} />
+      {mode === 'edit' && <ElementLists />}
     </>
   );
 }
