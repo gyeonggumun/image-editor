@@ -7,7 +7,7 @@ export default function useShortcuts(containerRef, setZoom) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (['TEXTAREA', 'INPUT'].includes(e.target.tagName)) return;
+      if (['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
       
       if (e.code === 'Space' && !isSpacePressed) {
         e.preventDefault();
@@ -32,6 +32,7 @@ export default function useShortcuts(containerRef, setZoom) {
           if (e.code === 'ArrowDown') dy = step;
           if (e.code === 'ArrowLeft') dx = -step;
           if (e.code === 'ArrowRight') dx = step;
+          if (!e.repeat) store.saveHistory();
           store.moveSelectedItems(dx, dy);
         }
       }
@@ -55,7 +56,7 @@ export default function useShortcuts(containerRef, setZoom) {
     const handleWheel = (e) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        setZoom(prev => Math.min(Math.max(0.2, prev - e.deltaY * 0.002), 3));
+        setZoom(prev => Math.min(Math.max(0.2, prev - e.deltaY * 0.002), 8));
       }
     };
     container.addEventListener('wheel', handleWheel, { passive: false });

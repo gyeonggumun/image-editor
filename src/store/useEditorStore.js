@@ -1,15 +1,16 @@
 import { create } from 'zustand';
+import { DEFAULT_FILTERS, validateDimensions } from '../lib/imageTools.js';
+
+const snapshot = state => Object.fromEntries(['image', 'imageName', 'ratio', 'canvasWidth', 'canvasHeight', 'imageFit', 'layers', 'stickers', 'shapes', 'imageFilters', 'maskStrokes'].map(key => [key, state[key]]));
 
 const useEditorStore = create((set, get) => ({
   image: null,
   ratio: '1:1',
+  canvasWidth: 1080, canvasHeight: 1080, imageFit: 'contain', imageName: 'Untitled',
   
-  imageFilters: { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
+  imageFilters: { ...DEFAULT_FILTERS },
   
-  layers: [{ 
-    id: Date.now(), text: '첫 번째 문구', x: 50, y: 50, size: 40, 
-    color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa']
-  }],
+  layers: [],
   stickers: [], 
   shapes: [], 
   
@@ -26,71 +27,42 @@ const useEditorStore = create((set, get) => ({
   past: [],
   future: [],
 
-  saveHistory: () => {
-    const { layers, stickers, shapes, imageFilters } = get();
-    set((state) => ({
-      past: [...state.past, { 
-        layers: JSON.parse(JSON.stringify(layers)), 
-        stickers: JSON.parse(JSON.stringify(stickers)),
-        shapes: JSON.parse(JSON.stringify(shapes)),
-        imageFilters: { ...imageFilters } 
-      }].slice(-30),
-      future: []
-    }));
-  },
-
+  saveHistory: () => set(state => ({ past: [...state.past, snapshot(state)].slice(-30), future: [] })),
   undo: () => {
-    const { past, layers, stickers, shapes, imageFilters } = get();
-    if (past.length === 0) return;
-    const previous = past[past.length - 1];
-    set((state) => ({
-      past: state.past.slice(0, -1),
-      future: [{ 
-        layers: JSON.parse(JSON.stringify(layers)), 
-        stickers: JSON.parse(JSON.stringify(stickers)), 
-        shapes: JSON.parse(JSON.stringify(shapes)),
-        imageFilters: { ...imageFilters }
-      }, ...state.future],
-      layers: previous.layers,
-      stickers: previous.stickers,
-      shapes: previous.shapes,
-      imageFilters: previous.imageFilters || { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
-      selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: []
-    }));
+    const state = get();
+    if (!state.past.length) return;
+    set({ ...state.past.at(-1), past: state.past.slice(0, -1), future: [snapshot(state), ...state.future], selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: [] });
   },
-
   redo: () => {
-    const { future, layers, stickers, shapes, imageFilters } = get();
-    if (future.length === 0) return;
-    const next = future[0];
-    set((state) => ({
-      past: [...state.past, { 
-        layers: JSON.parse(JSON.stringify(layers)), 
-        stickers: JSON.parse(JSON.stringify(stickers)), 
-        shapes: JSON.parse(JSON.stringify(shapes)),
-        imageFilters: { ...imageFilters }
-      }],
-      future: state.future.slice(1),
-      layers: next.layers,
-      stickers: next.stickers,
-      shapes: next.shapes,
-      imageFilters: next.imageFilters || { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
-      selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: []
-    }));
+    const state = get();
+    if (!state.future.length) return;
+    set({ ...state.future[0], past: [...state.past, snapshot(state)].slice(-30), future: state.future.slice(1), selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: [] });
   },
-
-  setImage: (img) => {
+  setImage: (image, name = 'Untitled') => {
     get().saveHistory();
-    set({
-      image: img,
-      imageFilters: { brightness: 100, contrast: 100, grayscale: 0, blur: 0 },
-      maskMode: false,
-      maskStrokes: []
-    });
+    set({ image, imageName: name.replace(/\.[^.]+$/, ''), canvasWidth: image.naturalWidth, canvasHeight: image.naturalHeight, ratio: 'custom', imageFilters: { ...DEFAULT_FILTERS }, maskMode: false, maskStrokes: [] });
   },
-  
-  setRatio: (ratio) => set({ ratio }),
-  
+  resizeCanvas: (width, height, scaleContent = true) => {
+    if (!validateDimensions(width, height)) { set({ errorMessage: '크기는 1~8,192px, 총 1,600만 픽셀 이내로 입력해 주세요.' }); return false; }
+    const state = get();
+    if (width === state.canvasWidth && height === state.canvasHeight) return true;
+    state.saveHistory();
+    const sx = width / state.canvasWidth, sy = height / state.canvasHeight;
+    set({ canvasWidth: width, canvasHeight: height, ratio: 'custom', errorMessage: '',
+      ...(scaleContent ? {
+        layers: state.layers.map(l => ({ ...l, x: l.x * sx, y: l.y * sy, size: l.size * Math.min(sx, sy), ...(l.textWidth ? { textWidth: l.textWidth * sx } : {}) })),
+        shapes: state.shapes.map(s => ({ ...s, x: s.x * sx, y: s.y * sy, width: s.width * sx, height: s.height * sy })),
+        stickers: state.stickers.map(s => ({ ...s, x: s.x * sx, y: s.y * sy, width: s.width * sx, height: s.height * sy })),
+      } : {}), maskStrokes: [], maskMode: false,
+    });
+    return true;
+  },
+  setRatio: ratio => {
+    const dimensions = { '1:1': [1080, 1080], '4:5': [1080, 1350], '9:16': [1080, 1920], '16:9': [1920, 1080] }[ratio];
+    if (dimensions) { get().resizeCanvas(...dimensions); set({ ratio }); }
+  },
+  setImageFit: imageFit => { get().saveHistory(); set({ imageFit }); },
+
   setImageFilter: (key, value) => {
     set((state) => ({
       imageFilters: { ...state.imageFilters, [key]: value }
@@ -170,7 +142,7 @@ const useEditorStore = create((set, get) => ({
   addLayer: () => {
     get().saveHistory();
     set((state) => {
-      const newLayer = { id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 40, color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa'] };
+      const newLayer = { id: Date.now(), text: '새로운 텍스트', x: 100, y: 100, size: 32, textWidth: 400, fontWeight: 400, lineHeight: 1.4, letterSpacing: 0, color: '#18181b', useGradient: false, fontFamily: 'sans-serif', gradientColors: ['#18181b', '#a1a1aa'] };
       return { layers: [...state.layers, newLayer], selectedLayerIds: [newLayer.id], selectedStickerIds: [], selectedShapeIds: [] };
     });
   },

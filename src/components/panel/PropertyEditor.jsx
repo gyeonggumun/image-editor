@@ -1,3 +1,4 @@
+import NumberField from '../NumberField';
 import useEditorStore from '../../store/useEditorStore';
 
 export default function PropertyEditor() {
@@ -5,7 +6,7 @@ export default function PropertyEditor() {
     layers, updateLayer, reorderLayer, 
     stickers, updateSticker, reorderSticker, 
     shapes, updateShape, reorderShape,
-    selectedLayerIds, selectedStickerIds, selectedShapeIds
+    selectedLayerIds, selectedStickerIds, selectedShapeIds, saveHistory
   } = useEditorStore();
 
   const isMultiSelected = selectedLayerIds.length + selectedStickerIds.length + selectedShapeIds.length > 1;
@@ -25,7 +26,7 @@ export default function PropertyEditor() {
   if (isNoneSelected) return <div className="empty-state">편집할 대상을 선택해주세요</div>;
 
   return (
-    <div className="property-editor">
+    <div className="property-editor" onFocusCapture={() => saveHistory()}>
       {isMultiSelected ? (
         <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '12px 0' }}>다중 선택 상태입니다.<br/>드래그하거나 방향키로 이동하세요.</div>
       ) : (
@@ -38,16 +39,23 @@ export default function PropertyEditor() {
             </div>
           </div>
 
+          {(activeLayer || activeShape || activeSticker) && <div className="field-row">{['x', 'y'].map(axis => {
+            const item = activeLayer || activeShape || activeSticker;
+            const update = activeLayer ? updateLayer : activeShape ? updateShape : updateSticker;
+            return <NumberField key={axis} label={`${axis.toUpperCase()} 위치`} min={-8192} step={0.5} value={Math.round(item[axis] * 10) / 10} onChange={value => update(item.id, { [axis]: value })} />;
+          })}</div>}
+          {activeLayer && <><div className="field-row"><NumberField label="자간" min={-10} max={100} step={0.1} value={activeLayer.letterSpacing || 0} onChange={letterSpacing => updateLayer(activeLayer.id, { letterSpacing })} /><NumberField label="행간" min={0.5} max={5} step={0.1} suffix="배" value={activeLayer.lineHeight || 1.4} onChange={lineHeight => updateLayer(activeLayer.id, { lineHeight })} /></div><label className="control-group">글자 굵기<select aria-label="글자 굵기" className="control-input" value={activeLayer.fontWeight || 400} onChange={e => updateLayer(activeLayer.id, { fontWeight: Number(e.target.value) })}><option value={300}>Light</option><option value={400}>Regular</option><option value={500}>Medium</option><option value={700}>Bold</option></select></label><NumberField label="텍스트 영역 너비" min={1} value={activeLayer.textWidth || 400} onChange={textWidth => updateLayer(activeLayer.id, { textWidth })} /></>}
+
           {activeShape && (
             <>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <div className="control-group" style={{ flex: 1 }}>
-                  <label>너비: {activeShape.width}px</label>
+                  <NumberField label="도형 너비" min={1} step={0.5} value={activeShape.width} onChange={width => updateShape(activeShape.id, { width })} />
                   <input type="range" min="10" max="600" value={activeShape.width} onChange={(e) => updateShape(activeShape.id, { width: Number(e.target.value) })} />
                 </div>
                 {activeShape.type !== 'line' && (
                   <div className="control-group" style={{ flex: 1 }}>
-                    <label>높이: {activeShape.height}px</label>
+                    <NumberField label="도형 높이" min={1} step={0.5} value={activeShape.height} onChange={height => updateShape(activeShape.id, { height })} />
                     <input type="range" min="10" max="600" value={activeShape.height} onChange={(e) => updateShape(activeShape.id, { height: Number(e.target.value) })} />
                   </div>
                 )}
@@ -98,7 +106,7 @@ export default function PropertyEditor() {
             <>
               <div className="control-group">
                 <label>문구</label>
-                <textarea className="control-input" rows="3" value={activeLayer.text} onChange={(e) => updateLayer(activeLayer.id, { text: e.target.value })} />
+                <textarea aria-label="문구" className="control-input" rows="3" value={activeLayer.text} onChange={(e) => updateLayer(activeLayer.id, { text: e.target.value })} />
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <div className="control-group" style={{ flex: 1 }}>
@@ -110,8 +118,7 @@ export default function PropertyEditor() {
                   </select>
                 </div>
                 <div className="control-group" style={{ flex: 1 }}>
-                  <label>크기: {activeLayer.size}px</label>
-                  <input type="range" min="20" max="120" value={activeLayer.size} onChange={(e) => updateLayer(activeLayer.id, { size: Number(e.target.value) })} />
+                  <NumberField label="글자 크기" min={1} max={1000} step={0.5} value={activeLayer.size} onChange={size => updateLayer(activeLayer.id, { size })} />
                 </div>
               </div>
               <div className="control-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', marginTop: '8px' }}>

@@ -1,3 +1,4 @@
+import { validateDimensions } from '../lib/imageTools';
 import { useEffect, useState } from 'react';
 import useEditorStore from '../store/useEditorStore';
 
@@ -12,7 +13,7 @@ const getUserId = () => {
   return id;
 };
 
-const RATIOS = ['1:1', '4:5', '9:16'];
+const RATIOS = ['1:1', '4:5', '9:16', '16:9', 'custom'];
 const DEFAULT_IMAGE_FILTERS = { brightness: 100, contrast: 100, grayscale: 0, blur: 0 };
 const numberOr = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
@@ -20,14 +21,20 @@ const normalizeTemplate = (template, index) => {
   if (!template || typeof template !== 'object' || !Array.isArray(template.layers) || !Array.isArray(template.stickers)) {
     throw new Error('레이어와 에셋 목록이 없는 템플릿이 포함되어 있습니다.');
   }
+  const canvasWidth = Math.round(numberOr(template.canvasWidth, 600));
+  const canvasHeight = Math.round(numberOr(template.canvasHeight, template.ratio === '4:5' ? 750 : template.ratio === '9:16' ? 1067 : 600));
+  if (!validateDimensions(canvasWidth, canvasHeight)) throw new Error('템플릿의 문서 크기가 허용 범위를 벗어났습니다.');
   return {
     id: template.id ?? `imported-${Date.now()}-${index}`,
     name: typeof template.name === 'string' && template.name.trim() ? template.name : `템플릿 ${index + 1}`,
     ratio: RATIOS.includes(template.ratio) ? template.ratio : '1:1',
+    canvasWidth, canvasHeight,
+    imageFit: ['contain', 'cover', 'stretch'].includes(template.imageFit) ? template.imageFit : 'cover',
     tag: typeof template.tag === 'string' ? template.tag : '기본',
     layers: template.layers.map((layer, layerIndex) => ({
       id: layer.id ?? `layer-${Date.now()}-${index}-${layerIndex}`,
       text: String(layer.text ?? ''), x: numberOr(layer.x, 50), y: numberOr(layer.y, 50), size: numberOr(layer.size, 40),
+      fontWeight: numberOr(layer.fontWeight, 700), lineHeight: numberOr(layer.lineHeight, 1.2), letterSpacing: numberOr(layer.letterSpacing, 0), textWidth: numberOr(layer.textWidth, 0),
       color: typeof layer.color === 'string' ? layer.color : '#18181b', useGradient: Boolean(layer.useGradient),
       fontFamily: typeof layer.fontFamily === 'string' ? layer.fontFamily : 'sans-serif',
       gradientColors: Array.isArray(layer.gradientColors) && layer.gradientColors.length >= 2 ? layer.gradientColors : ['#18181b', '#a1a1aa'],
@@ -97,6 +104,7 @@ function TemplateManager() {
       id: Date.now(),
       name: `템플릿 ${store.templates.length + 1}`,
       ratio: store.ratio,
+      canvasWidth: store.canvasWidth, canvasHeight: store.canvasHeight, imageFit: store.imageFit,
       layers: store.layers,
       stickers: store.stickers,
       shapes: store.shapes,
@@ -109,14 +117,17 @@ function TemplateManager() {
   };
 
   const loadTemplate = (tmpl) => {
-    store.saveHistory();
-    store.setRatio(tmpl.ratio);
-    store.setLayers(tmpl.layers || []); 
-    store.setStickers(tmpl.stickers || []); 
-    store.setShapes(tmpl.shapes || []);
-    store.setImageFilters(tmpl.imageFilters || DEFAULT_IMAGE_FILTERS);
-    store.clearSelection();
-    setErrorMessage('');
+    try {
+      const normalized = normalizeTemplate(tmpl, 0);
+      store.saveHistory();
+      useEditorStore.setState({ ratio: normalized.ratio, canvasWidth: normalized.canvasWidth, canvasHeight: normalized.canvasHeight, imageFit: normalized.imageFit });
+      store.setLayers(normalized.layers);
+      store.setStickers(normalized.stickers);
+      store.setShapes(normalized.shapes);
+      store.setImageFilters(normalized.imageFilters);
+      store.clearSelection();
+      setErrorMessage('');
+    } catch (error) { setErrorMessage(error.message); }
   };
 
   const deleteTemplate = async (id) => {
@@ -133,6 +144,7 @@ function TemplateManager() {
     link.download = 'templates.json';
     link.href = url;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const importJSON = async (e) => {

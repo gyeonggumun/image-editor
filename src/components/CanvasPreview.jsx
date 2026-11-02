@@ -1,8 +1,9 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import useEditorStore from '../store/useEditorStore';
 import useShortcuts from '../hooks/useShortcuts';
 import useCanvasEvents from '../hooks/useCanvasEvents';
-import { jsPDF } from 'jspdf';
+import StudioExport from './canvas/StudioExport';
+import { prepareImage, loadImage, textLayout, validateDimensions } from '../lib/imageTools';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -10,12 +11,12 @@ const pointsToPath = (points) => points
   .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
   .join(' ');
 
-export default function CanvasPreview() {
+export default function CanvasPreview({ mode }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   
   const {
-    ratio,
+    canvasWidth, canvasHeight, imageFit,
     image,
     imageFilters,
     layers,
@@ -32,7 +33,7 @@ export default function CanvasPreview() {
   } = useEditorStore();
   
   const stickerCache = useRef({});
-  const [, setRenderTrigger] = useState(0);
+  const [renderTrigger, setRenderTrigger] = useState(0);
 
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -42,6 +43,9 @@ export default function CanvasPreview() {
   // 훅에서 가져오는 상태 확장
   const { handleMouseDown, handleMouseMove, handleMouseUp, isDragging, isPanning, getCanvasDimensions, resizingItem, hoverHandle } = useCanvasEvents(canvasRef, isSpacePressed, pan, setPan);
   const canvasSize = getCanvasDimensions();
+  const background = useMemo(() => prepareImage(image, canvasWidth, canvasHeight, imageFilters, imageFit), [image, canvasWidth, canvasHeight, imageFilters, imageFit]);
+  const [compare, setCompare] = useState(false);
+  const original = useMemo(() => mode === 'enhance' && image ? prepareImage(image, canvasWidth, canvasHeight, { brightness: 100, contrast: 100, grayscale: 0, blur: 0 }, imageFit) : null, [image, canvasWidth, canvasHeight, imageFit, mode]);
   const maskOverlayRef = useRef(null);
   const [currentMaskStroke, setCurrentMaskStroke] = useState(null);
 
@@ -84,28 +88,14 @@ export default function CanvasPreview() {
     canvasCursor = 'grabbing';
   }
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
+  const drawCanvas = useCallback((canvas, clean = false, scale = 1) => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const { width, height } = getCanvasDimensions();
-    
-    canvas.width = width;
-    canvas.height = height;
-    
-    ctx.fillStyle = '#e2e8f0';
-    ctx.fillRect(0, 0, width, height);
-
-    if (image) {
-      const imgRatio = image.width / image.height;
-      let drawWidth = width, drawHeight = height, offsetX = 0, offsetY = 0;
-      if (imgRatio > width / height) { drawWidth = height * imgRatio; offsetX = (width - drawWidth) / 2; } 
-      else { drawHeight = width / imgRatio; offsetY = (height - drawHeight) / 2; }
-      
-      ctx.filter = `brightness(${imageFilters.brightness}%) contrast(${imageFilters.contrast}%) grayscale(${imageFilters.grayscale}%) blur(${imageFilters.blur}px)`;
-      ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
-      ctx.filter = 'none';
-    }
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    ctx.scale(scale, scale);
+    ctx.drawImage(!clean && compare && original ? original : background, 0, 0, width, height);
 
     const drawHandle = (hx, hy) => {
       ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2;
@@ -134,7 +124,7 @@ export default function CanvasPreview() {
       }
       ctx.globalAlpha = 1;
 
-      if (selectedShapeIds.includes(shape.id)) {
+      if (!clean && selectedShapeIds.includes(shape.id)) {
         ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
         ctx.strokeRect(shape.x - 2, shape.y - (shape.type === 'line' ? shape.height/2 + 2 : 2), shape.width + 4, (shape.type === 'line' ? shape.height : shape.height) + 4); 
         ctx.setLineDash([]);
@@ -148,10 +138,10 @@ export default function CanvasPreview() {
 
     stickers.forEach(sticker => {
       let img = stickerCache.current[sticker.id];
-      if (!img) { img = new Image(); img.src = sticker.src; img.onload = () => setRenderTrigger(prev => prev + 1); stickerCache.current[sticker.id] = img; } 
-      else {
+      if (!img || img.src !== sticker.src) { img = new Image(); img.onload = () => setRenderTrigger(prev => prev + 1); img.src = sticker.src; stickerCache.current[sticker.id] = img; }
+      if (img.complete && img.naturalWidth) {
         ctx.drawImage(img, sticker.x, sticker.y, sticker.width, sticker.height);
-        if (selectedStickerIds.includes(sticker.id)) { 
+        if (!clean && selectedStickerIds.includes(sticker.id)) {
           ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); 
           ctx.strokeRect(sticker.x - 2, sticker.y - 2, sticker.width + 4, sticker.height + 4); 
           ctx.setLineDash([]); 
@@ -164,24 +154,17 @@ export default function CanvasPreview() {
     });
 
     layers.forEach(layer => {
-      ctx.font = `bold ${layer.size}px ${layer.fontFamily || 'sans-serif'}`; ctx.textBaseline = 'top';
-      if (selectedLayerIds.includes(layer.id)) { ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 6; } 
-      else { ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 2; }
-      ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
-      
-      const paragraphs = layer.text.split('\n'); const finalLines = [];
-      paragraphs.forEach(paragraph => {
-        let currentLine = ''; const chars = paragraph.split(''); 
-        for (let i = 0; i < chars.length; i++) {
-          const testLine = currentLine + chars[i];
-          if (ctx.measureText(testLine).width > (width - layer.x - 20) && currentLine.length > 0) { finalLines.push(currentLine); currentLine = chars[i]; } 
-          else { currentLine = testLine; }
-        }
-        finalLines.push(currentLine); 
-      });
-
+      const layout = textLayout(ctx, layer, width);
+      const finalLines = layout.lines;
+      ctx.textBaseline = 'top';
+      ctx.shadowColor = 'transparent';
+      if (!clean && selectedLayerIds.includes(layer.id)) {
+        ctx.strokeStyle = '#486653'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+        ctx.strokeRect(layer.x - 3, layer.y - 3, layout.width + 6, layout.height + 6);
+        ctx.setLineDash([]);
+      }
       finalLines.forEach((line, index) => {
-        const currentY = layer.y + (index * (layer.size * 1.2));
+        const currentY = layer.y + (index * (layer.size * (layer.lineHeight || 1.4)));
         const gradientColors = layer.gradientColors || [layer.color, layer.color2 || '#a1a1aa'];
         if (layer.useGradient && gradientColors.length >= 2) {
           const grad = ctx.createLinearGradient(layer.x, currentY, layer.x + ctx.measureText(line).width, currentY);
@@ -193,34 +176,47 @@ export default function CanvasPreview() {
       ctx.shadowColor = 'transparent';
     });
 
-    if (isDragging && guidelines) {
+    if (!clean && isDragging && guidelines) {
       ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
       if (guidelines.x !== null) { ctx.beginPath(); ctx.moveTo(guidelines.x, 0); ctx.lineTo(guidelines.x, height); ctx.stroke(); }
       if (guidelines.y !== null) { ctx.beginPath(); ctx.moveTo(0, guidelines.y); ctx.lineTo(width, guidelines.y); ctx.stroke(); }
       ctx.setLineDash([]); 
     }
 
-  }, [ratio, image, imageFilters, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging, resizingItem, hoverHandle, getCanvasDimensions]);
+  }, [getCanvasDimensions, background, original, compare, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging]);
+
+  useEffect(() => { drawCanvas(canvasRef.current); }, [drawCanvas, renderTrigger]);
+
+  const renderExport = async scale => {
+    if (!validateDimensions(canvasWidth * scale, canvasHeight * scale)) throw new Error('출력 크기 제한을 초과했습니다.');
+    await document.fonts.ready;
+    await Promise.all(stickers.map(async sticker => { stickerCache.current[sticker.id] = await loadImage(sticker.src); }));
+    const canvas = document.createElement('canvas');
+    drawCanvas(canvas, true, scale);
+    return canvas;
+  };
 
   return (
     <div className="preview-panel" style={{ position: 'relative' }}>
       
-      <div style={{ position: 'absolute', bottom: '110px', right: '20px', zIndex: 10, display: 'flex', gap: '4px', background: 'var(--bg-surface)', padding: '4px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border-base)' }}>
-        <button className="action-sm-btn" onClick={() => setZoom(prev => Math.max(0.2, prev - 0.1))} title="축소">-</button>
+      <div style={{ position: 'absolute', bottom: '145px', right: '20px', zIndex: 10, display: 'flex', gap: '4px', background: 'var(--bg-surface)', padding: '4px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border-base)' }}>
+        <button className="action-sm-btn" onClick={() => setZoom(prev => Math.max(0.2, prev - 0.25))} title="축소">-</button>
         <span style={{ fontSize: '12px', padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: '500' }}>
           {Math.round(zoom * 100)}%
         </span>
-        <button className="action-sm-btn" onClick={() => setZoom(prev => Math.min(3, prev + 0.1))} title="확대">+</button>
-        <button className="action-sm-btn" onClick={() => { setZoom(1); setPan({x:0, y:0}); }} title="초기화">Reset</button>
+        <button className="action-sm-btn" onClick={() => setZoom(prev => Math.min(8, prev + 0.25))} title="확대">+</button>
+        <button className="action-sm-btn" onClick={() => { setZoom(1); setPan({x:0, y:0}); }} title="초기화">화면 맞춤</button>
       </div>
 
+      {mode === 'enhance' && image && <button className="compare-button" aria-pressed={compare} onClick={() => setCompare(!compare)}>{compare ? '보정 결과 보기' : '원본 비교하기'}</button>}
       <div ref={containerRef} className="canvas-container" style={{ overflow: 'hidden' }}>
-        <div className="canvas-stage" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }}>
+        <div className="canvas-stage" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, '--canvas-ratio': `${canvasWidth} / ${canvasHeight}`, width: `min(100%, ${Math.min(600, 560 * canvasWidth / canvasHeight)}px)`, transformOrigin: 'center center', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }}>
           <canvas 
+            aria-label="작업 캔버스"
             ref={canvasRef} 
             width={canvasSize.width}
             height={canvasSize.height}
-            onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} 
+            onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); handleMouseDown(e); }} onPointerMove={handleMouseMove} onPointerUp={handleMouseUp} onPointerCancel={handleMouseUp}
             style={{ cursor: canvasCursor }} 
           />
           <svg
@@ -246,29 +242,7 @@ export default function CanvasPreview() {
         </div>
       </div>
       
-      <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-        <button className="secondary-btn" style={{ flex: 1, padding: '12px', fontWeight: 'bold' }} onClick={() => {
-          const canvas = canvasRef.current;
-          if (!canvas) return;
-          const link = document.createElement('a');
-          link.download = `result-${Date.now()}.png`;
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-        }}>
-          웹용 이미지(PNG) 다운로드
-        </button>
-        <button className="action-btn" style={{ flex: 1, margin: 0, padding: '12px', backgroundColor: '#dc2626', borderColor: '#dc2626', fontWeight: 'bold' }} onClick={() => {
-          const canvas = canvasRef.current;
-          if (!canvas) return;
-          const isLandscape = canvas.width > canvas.height;
-          const pdf = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
-          const imgData = canvas.toDataURL('image/png', 1.0);
-          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-          pdf.save(`design-export-${Date.now()}.pdf`);
-        }}>
-          인쇄용 PDF 다운로드
-        </button>
-      </div>
+      <StudioExport renderCanvas={renderExport} />
 
     </div>
   );

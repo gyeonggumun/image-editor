@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { textLayout } from '../lib/imageTools';
 import useEditorStore from '../store/useEditorStore';
 
 export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) {
@@ -13,11 +14,8 @@ export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) 
   const [hoverHandle, setHoverHandle] = useState(null);
 
   const getCanvasDimensions = useCallback(() => {
-    const baseWidth = 600;
-    if (store.ratio === '1:1') return { width: baseWidth, height: baseWidth };
-    if (store.ratio === '4:5') return { width: baseWidth, height: baseWidth * 1.25 };
-    return { width: baseWidth, height: baseWidth * (16 / 9) };
-  }, [store.ratio]);
+    return { width: store.canvasWidth, height: store.canvasHeight };
+  }, [store.canvasWidth, store.canvasHeight]);
 
   const getMousePos = (e) => {
     const canvas = canvasRef.current;
@@ -74,8 +72,9 @@ export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) 
     let hitId = null; let hitType = null;
     for (let i = store.layers.length - 1; i >= 0; i--) {
       const layer = store.layers[i];
-      const approxHeight = layer.text.split('\n').length * layer.size * 1.2;
-      const hitBoxWidth = Math.max(100, layer.size * 3);
+      const bounds = textLayout(canvasRef.current.getContext('2d'), layer, store.canvasWidth);
+      const approxHeight = Math.max(12, bounds.height);
+      const hitBoxWidth = Math.max(12, bounds.width);
       if (pos.x >= layer.x - 10 && pos.x <= layer.x + hitBoxWidth && pos.y >= layer.y - 10 && pos.y <= layer.y + approxHeight) {
         hitId = layer.id; hitType = 'layer'; break;
       }
