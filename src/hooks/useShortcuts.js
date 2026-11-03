@@ -7,7 +7,16 @@ export default function useShortcuts(containerRef, setZoom) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
+      if (e.isComposing || e.target.isContentEditable || ['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
+
+      if (e.key === 'Delete') {
+        const totalSelected = store.selectedLayerIds.length + store.selectedStickerIds.length + store.selectedShapeIds.length;
+        if (totalSelected > 0) {
+          e.preventDefault();
+          if (!e.repeat) store.deleteSelectedItems();
+        }
+        return;
+      }
       
       if (e.code === 'Space' && !isSpacePressed) {
         e.preventDefault();

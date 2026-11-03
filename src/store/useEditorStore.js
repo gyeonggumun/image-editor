@@ -91,6 +91,18 @@ const useEditorStore = create((set, get) => ({
 
   clearSelection: () => set({ selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: [] }),
 
+  deleteSelectedItems: () => {
+    const state = get();
+    if (!state.selectedLayerIds.length && !state.selectedStickerIds.length && !state.selectedShapeIds.length) return;
+    state.saveHistory();
+    set({
+      layers: state.layers.filter(layer => !state.selectedLayerIds.includes(layer.id)),
+      stickers: state.stickers.filter(sticker => !state.selectedStickerIds.includes(sticker.id)),
+      shapes: state.shapes.filter(shape => !state.selectedShapeIds.includes(shape.id)),
+      selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: []
+    });
+  },
+
   moveSelectedItems: (dx, dy) => set((state) => ({
     layers: state.layers.map(l => state.selectedLayerIds.includes(l.id) ? { ...l, x: l.x + dx, y: l.y + dy } : l),
     stickers: state.stickers.map(s => state.selectedStickerIds.includes(s.id) ? { ...s, x: s.x + dx, y: s.y + dy } : s),
