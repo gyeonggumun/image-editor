@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { DEFAULT_FILTERS, validateDimensions } from '../lib/imageTools.js';
+import { isValidCrop } from '../lib/cropTools.js';
 
 const snapshot = state => Object.fromEntries(['image', 'imageName', 'ratio', 'canvasWidth', 'canvasHeight', 'imageFit', 'layers', 'stickers', 'shapes', 'imageFilters', 'maskStrokes'].map(key => [key, state[key]]));
 
@@ -62,6 +63,21 @@ const useEditorStore = create((set, get) => ({
     if (dimensions) { get().resizeCanvas(...dimensions); set({ ratio }); }
   },
   setImageFit: imageFit => { get().saveHistory(); set({ imageFit }); },
+
+  cropCanvas: (image, rect) => {
+    const state = get();
+    if (!image || !isValidCrop(rect, state.canvasWidth, state.canvasHeight) || image.naturalWidth !== rect.width || image.naturalHeight !== rect.height) return false;
+    state.saveHistory();
+    set({
+      image, canvasWidth: rect.width, canvasHeight: rect.height, ratio: 'custom', imageFit: 'stretch',
+      layers: state.layers.map(layer => ({ ...layer, x: layer.x - rect.x, y: layer.y - rect.y, textWidth: layer.textWidth || Math.max(layer.size, state.canvasWidth - layer.x - 20) })),
+      stickers: state.stickers.map(sticker => ({ ...sticker, x: sticker.x - rect.x, y: sticker.y - rect.y })),
+      shapes: state.shapes.map(shape => ({ ...shape, x: shape.x - rect.x, y: shape.y - rect.y })),
+      maskMode: false, maskStrokes: [], guidelines: { x: null, y: null },
+      selectedLayerIds: [], selectedStickerIds: [], selectedShapeIds: [], errorMessage: ''
+    });
+    return true;
+  },
 
   setImageFilter: (key, value) => {
     set((state) => ({

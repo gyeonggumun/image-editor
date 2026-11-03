@@ -38,3 +38,24 @@ body{background:var(--bg-canvas);line-height:1.5}button{cursor:pointer}button:di
   .logo-preview canvas { max-height: 320px; }
   .logo-preview-note { flex-direction: column; gap: 5px; }
 }
+
+
+.crop-tool { margin-bottom: 12px; }
+.crop-start { gap: 24px; }
+.crop-start > span { font-size: 19px; line-height: 1; }
+.crop-tool.is-active { padding: 14px; border: 1px solid #b6c2ac; border-radius: 4px; background: #f0f3eb; }
+.crop-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.crop-toolbar > strong { font-size: 11px; margin-right: auto; }
+.crop-toolbar .control-input { width: auto; max-width: 150px; }
+.crop-toolbar .primary-button { min-height: 34px; padding: 8px 12px; font-size: 11px; }
+.crop-toolbar .secondary-btn { min-height: 34px; }
+.crop-toolbar .action-sm-btn[aria-pressed=true] { background: #dce5d3; color: #2e4433; }
+.crop-numbers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; border: 0; margin: 14px 0 0; padding: 0; min-width: 0; }
+.crop-numbers .number-field { margin-bottom: 0; }
+.crop-tool .help-text { margin: 12px 0 0; }
+.crop-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; z-index: 4; touch-action: none; cursor: crosshair; }
+@media (max-width: 760px) {
+  .crop-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crop-toolbar > strong { width: 100%; }
+  .crop-toolbar .control-input { max-width: none; flex: 1; }
+}

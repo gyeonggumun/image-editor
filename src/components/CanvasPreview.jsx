@@ -3,6 +3,7 @@ import useEditorStore from '../store/useEditorStore';
 import useShortcuts from '../hooks/useShortcuts';
 import useCanvasEvents from '../hooks/useCanvasEvents';
 import StudioExport from './canvas/StudioExport';
+import CropTool from './canvas/CropTool';
 import { prepareImage, loadImage, textLayout, validateDimensions } from '../lib/imageTools';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -14,6 +15,7 @@ const pointsToPath = (points) => points
 export default function CanvasPreview({ mode }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
+  const stageRef = useRef(null);
   
   const {
     canvasWidth, canvasHeight, imageFit,
@@ -212,6 +214,7 @@ export default function CanvasPreview({ mode }) {
 
   return (
     <div className="preview-panel" style={{ position: 'relative' }}>
+      {mode === 'edit' && <CropTool canvasRef={canvasRef} stageRef={stageRef} zoom={zoom} onComplete={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} />}
       
       <div style={{ position: 'absolute', bottom: '145px', right: '20px', zIndex: 10, display: 'flex', gap: '4px', background: 'var(--bg-surface)', padding: '4px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-subtle)', border: '1px solid var(--border-base)' }}>
         <button className="action-sm-btn" onClick={() => setZoom(prev => Math.max(0.2, prev - 0.25))} title="축소">-</button>
@@ -224,7 +227,7 @@ export default function CanvasPreview({ mode }) {
 
       {mode === 'enhance' && image && <button className="compare-button" aria-pressed={compare} onClick={() => setCompare(!compare)}>{compare ? '보정 결과 보기' : '원본 비교하기'}</button>}
       <div ref={containerRef} className="canvas-container" style={{ overflow: 'hidden' }}>
-        <div className="canvas-stage" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, '--canvas-ratio': `${canvasWidth} / ${canvasHeight}`, width: `min(100%, ${Math.min(600, 560 * canvasWidth / canvasHeight)}px)`, transformOrigin: 'center center', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }}>
+        <div ref={stageRef} className="canvas-stage" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, '--canvas-ratio': `${canvasWidth} / ${canvasHeight}`, width: `min(100%, ${Math.min(600, 560 * canvasWidth / canvasHeight)}px)`, transformOrigin: 'center center', transition: isPanning ? 'none' : 'transform 0.1s ease-out' }}>
           <canvas 
             aria-label="작업 캔버스"
             ref={canvasRef} 
