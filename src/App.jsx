@@ -3,6 +3,7 @@ import './App.css';
 import './studio.css';
 import Home, { TOOLS } from './components/Home';
 import PdfWorkspace from './components/PdfWorkspace';
+import LogoWorkspace from './components/LogoWorkspace';
 import PropertyEditor from './components/panel/PropertyEditor';
 import useEditorStore from './store/useEditorStore';
 import ControlPanel from './components/ControlPanel';
@@ -26,7 +27,7 @@ function App() {
         <span className="header-edition">DESIGNED FOR THE DETAILS</span>
       </header>
 
-      {page === 'home' ? <Home onSelect={navigate} hasWork={hasWork} /> : page === 'pdf' ? null : <>
+      {page === 'home' ? <Home onSelect={navigate} hasWork={hasWork} /> : ['pdf', 'logo'].includes(page) ? null : <>
         <div className="workspace-heading"><div><button className="text-button" onClick={() => navigate('home')}>작업실</button><span>/</span><strong>{activeTool.title}</strong></div><span>{store.imageName} <i>·</i> {store.canvasWidth} × {store.canvasHeight} px</span></div>
         <main className={`editor-layout mode-${page}`}>
           <aside className="control-panel"><ControlPanel mode={page} /></aside>
@@ -36,6 +37,7 @@ function App() {
       </>}
 
       <div hidden={page !== 'pdf'}><PdfWorkspace /></div>
+      <div hidden={page !== 'logo'}><LogoWorkspace /></div>
       <footer className="app-footer">Image Studio <span>작은 디테일까지, 나답게.</span></footer>
     </div>
   );
