@@ -97,9 +97,9 @@ export default function CanvasPreview({ mode }) {
     ctx.scale(scale, scale);
     ctx.drawImage(!clean && compare && original ? original : background, 0, 0, width, height);
 
-    const drawHandle = (hx, hy) => {
+    const drawHandle = (hx, hy, size = 8) => {
       ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.rect(hx - 4, hy - 4, 8, 8); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.rect(hx - size / 2, hy - size / 2, size, size); ctx.fill(); ctx.stroke();
     };
 
     shapes.forEach(shape => {
@@ -159,9 +159,17 @@ export default function CanvasPreview({ mode }) {
       ctx.textBaseline = 'top';
       ctx.shadowColor = 'transparent';
       if (!clean && selectedLayerIds.includes(layer.id)) {
-        ctx.strokeStyle = '#486653'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
-        ctx.strokeRect(layer.x - 3, layer.y - 3, layout.width + 6, layout.height + 6);
+        const units = width / canvas.clientWidth / zoom;
+        const padding = 6 * units;
+        const left = layer.x - padding, top = layer.y - padding;
+        const right = layer.x + layout.width + padding, bottom = layer.y + layout.height + padding;
+        ctx.strokeStyle = '#486653'; ctx.lineWidth = units; ctx.setLineDash([4 * units, 3 * units]);
+        ctx.strokeRect(left, top, right - left, bottom - top);
         ctx.setLineDash([]);
+        if (selectedLayerIds.length === 1 && selectedShapeIds.length === 0 && selectedStickerIds.length === 0) {
+          drawHandle(left, top, 8 * units); drawHandle(right, top, 8 * units);
+          drawHandle(left, bottom, 8 * units); drawHandle(right, bottom, 8 * units);
+        }
       }
       finalLines.forEach((line, index) => {
         const currentY = layer.y + (index * (layer.size * (layer.lineHeight || 1.4)));
@@ -183,9 +191,15 @@ export default function CanvasPreview({ mode }) {
       ctx.setLineDash([]); 
     }
 
-  }, [getCanvasDimensions, background, original, compare, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging]);
+  }, [getCanvasDimensions, background, original, compare, layers, stickers, shapes, selectedLayerIds, selectedStickerIds, selectedShapeIds, guidelines, isDragging, zoom]);
 
   useEffect(() => { drawCanvas(canvasRef.current); }, [drawCanvas, renderTrigger]);
+
+  useEffect(() => {
+    const observer = new ResizeObserver(() => drawCanvas(canvasRef.current));
+    observer.observe(canvasRef.current);
+    return () => observer.disconnect();
+  }, [drawCanvas]);
 
   const renderExport = async scale => {
     if (!validateDimensions(canvasWidth * scale, canvasHeight * scale)) throw new Error('출력 크기 제한을 초과했습니다.');

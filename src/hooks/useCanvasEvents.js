@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { textLayout } from '../lib/imageTools';
+import { resizeTextLayer } from '../lib/textResize';
 import useEditorStore from '../store/useEditorStore';
 
 export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) {
@@ -28,6 +29,20 @@ export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) 
   const checkResizeHandleHit = (pos) => {
     const HANDLE_SIZE = 12;
     const isHit = (hx, hy) => Math.abs(hx - pos.x) <= HANDLE_SIZE && Math.abs(hy - pos.y) <= HANDLE_SIZE;
+
+    if (store.selectedLayerIds.length === 1 && store.selectedShapeIds.length === 0 && store.selectedStickerIds.length === 0) {
+      const layer = store.layers.find(l => l.id === store.selectedLayerIds[0]);
+      if (layer) {
+        const canvas = canvasRef.current;
+        const units = canvas.width / canvas.getBoundingClientRect().width;
+        const bounds = textLayout(canvas.getContext('2d'), layer, store.canvasWidth);
+        const padding = 6 * units;
+        const corners = { nw: [layer.x - padding, layer.y - padding], ne: [layer.x + bounds.width + padding, layer.y - padding], sw: [layer.x - padding, layer.y + bounds.height + padding], se: [layer.x + bounds.width + padding, layer.y + bounds.height + padding] };
+        for (const [handle, [x, y]] of Object.entries(corners)) {
+          if (Math.abs(pos.x - x) <= 6 * units && Math.abs(pos.y - y) <= 6 * units) return { id: layer.id, type: 'layer', handle, layer: { ...layer }, bounds };
+        }
+      }
+    }
 
     if (store.selectedShapeIds.length === 1 && store.selectedLayerIds.length === 0 && store.selectedStickerIds.length === 0) {
       const shape = store.shapes.find(s => s.id === store.selectedShapeIds[0]);
@@ -64,7 +79,7 @@ export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) 
     const handleHit = checkResizeHandleHit(pos);
     if (handleHit) {
       store.saveHistory();
-      setResizingItem(handleHit);
+      setResizingItem({ ...handleHit, start: pos });
       setLastPos(pos);
       return;
     }
@@ -118,7 +133,9 @@ export default function useCanvasEvents(canvasRef, isSpacePressed, pan, setPan) 
 
     if (resizingItem) {
       const dx = pos.x - lastPos.x; const dy = pos.y - lastPos.y;
-      if (resizingItem.type === 'shape') {
+      if (resizingItem.type === 'layer') {
+        store.updateLayer(resizingItem.id, resizeTextLayer(resizingItem.layer, resizingItem.bounds, resizingItem.handle, pos.x - resizingItem.start.x, pos.y - resizingItem.start.y, store.canvasWidth));
+      } else if (resizingItem.type === 'shape') {
         const shape = store.shapes.find(s => s.id === resizingItem.id);
         if (shape) {
           let { x, y, width, height } = shape;
