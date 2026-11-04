@@ -88,6 +88,7 @@ export default function ControlPanel({ mode }) {
       {/* 🌟 기능별로 분리된 컴포넌트 조합 */}
       <BackgroundSettings />
       <DocumentSettings mode={mode} />
+      {mode === 'edit' && <hr className="section-divider" />}
       {mode === 'edit' && <ElementLists />}
     </>
   );

@@ -174,8 +174,6 @@ function TemplateManager() {
 
   return (
     <>
-      <hr style={{ margin: '24px 0', borderColor: 'var(--border-base)', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
-      
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h3 className="template-section-title" style={{ margin: 0 }}>템플릿 보관함</h3>
         {isLoading && <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>동기화 중...</span>}
